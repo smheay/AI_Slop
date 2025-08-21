@@ -1,4 +1,4 @@
-[gd_scene load_steps=14 format=3 uid="uid://dpy8jf0j4d68a"]
+[gd_scene load_steps=16 format=3 uid="uid://dpy8jf0j4d68a"]
 
 [ext_resource type="Script" uid="uid://d0v1pjumphh5f" path="res://world/LevelRuntime.gd" id="1_1"]
 [ext_resource type="Script" uid="uid://08wpv7d53mg6" path="res://world/SystemsRunner.gd" id="1_2"]
@@ -13,6 +13,8 @@
 [ext_resource type="PackedScene" path="res://features/spawning/Spawner.tscn" id="1_11"]
 [ext_resource type="PackedScene" path="res://actors/player/Player.tscn" id="1_12"]
 [ext_resource type="PackedScene" path="res://ui/Hotbar.tscn" id="1_13"]
+[ext_resource type="Script" uid="uid://buba8cxpxoflq" path="res://core/sim/HierarchicalCollision.gd" id="1_14"]
+[ext_resource type="Script" uid="uid://buba8cxpxoflq" path="res://core/pools/ObjectPool.gd" id="1_15"]
 
 [node name="LevelRuntime" type="Node"]
 script = ExtResource("1_1")
@@ -39,6 +41,17 @@ script = ExtResource("1_4")
 [node name="LODController" type="Node" parent="SystemsRunner/AgentSim"]
 script = ExtResource("1_5")
 
+[node name="HierarchicalCollision" type="Node" parent="SystemsRunner/AgentSim"]
+script = ExtResource("1_14")
+
+[node name="ObjectPool" type="Node" parent="SystemsRunner/AgentSim"]
+script = ExtResource("1_15")
+scene = ExtResource("1_2")
+initial_size = 200
+autogrow = true
+park_in_tree = false
+batch_operations = true
+
 [node name="AIRunner" type="Node" parent="SystemsRunner"]
 script = ExtResource("1_6")
 
@@ -58,7 +71,20 @@ script = ExtResource("1_9")
 script = ExtResource("1_10")
 
 [node name="Spawner" parent="." instance=ExtResource("1_11")]
-spawn_rate = 51.0
+enemy_scene = ExtResource("1_2")
+max_enemies = 1000
+spawn_batch_size = 100
+spawn_interval = 0.1
+use_object_pooling = true
+enable_lod = true
+tiny_enemy_chance = 0.4
+small_enemy_chance = 0.3
+medium_enemy_chance = 0.2
+large_enemy_chance = 0.08
+huge_enemy_chance = 0.02
+lod_distance_near = 200.0
+lod_distance_far = 800.0
+max_spawns_per_frame = 50
 
 [node name="Player" parent="." instance=ExtResource("1_12")]
 

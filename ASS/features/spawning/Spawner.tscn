@@ -1,18 +1,24 @@
 
 [gd_scene load_steps=3 format=3]
 
-[ext_resource type="Script" path="res://features/spawning/Spawner.gd" id="1_1"]
+[ext_resource type="Script" path="res://features/spawning/HighPerformanceSpawner.gd" id="1_1"]
 [ext_resource type="PackedScene" path="res://actors/enemies/Slime.tscn" id="1_2"]
 
-[node name="Spawner" type="Node2D"]
+[node name="Spawner" type="Node"]
 script = ExtResource("1_1")
-groups = ["spawners"]
-spawn_scene = ExtResource("1_2")
-spawn_rate = 1.0
-max_alive = 1000
-auto_spawn = true
-burst_size = 100
-
-[node name="SpawnTimer" type="Timer" parent="."]
+enemy_scene = ExtResource("1_2")
+max_enemies = 1000
+spawn_batch_size = 100
+spawn_interval = 0.1
+use_object_pooling = true
+enable_lod = true
+tiny_enemy_chance = 0.4
+small_enemy_chance = 0.3
+medium_enemy_chance = 0.2
+large_enemy_chance = 0.08
+huge_enemy_chance = 0.02
+lod_distance_near = 200.0
+lod_distance_far = 800.0
+max_spawns_per_frame = 50
 
 

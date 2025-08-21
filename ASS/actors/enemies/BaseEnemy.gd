@@ -1,4 +1,4 @@
-extends Node2D
+extends CharacterBody2D
 class_name BaseEnemy
 
 # Movement properties
@@ -29,9 +29,15 @@ var _last_update_frame: int = 0
 var _cached_desired_velocity: Vector2 = Vector2.ZERO
 var _velocity_cache_valid: bool = false
 
+# Collision system reference
+var _hierarchical_collision: HierarchicalCollision
+
 func _ready() -> void:
 	# Randomize starting frame to distribute updates
 	_frame_counter = randi() % update_frequency
+	
+	# Get reference to collision system
+	_hierarchical_collision = get_node_or_null("../HierarchicalCollision") as HierarchicalCollision
 
 func _physics_process(delta: float) -> void:
 	if not is_active:
@@ -52,6 +58,10 @@ func _ai_step(delta: float) -> void:
 	
 	# Compute desired velocity (cached for performance)
 	var desired = _compute_desired_velocity(delta)
+	
+	# Apply hierarchical collision response if available
+	if _hierarchical_collision:
+		desired = _hierarchical_collision.compute_hierarchical_collision_response(self, desired, delta)
 	
 	# Apply movement
 	apply_movement(desired, delta)
@@ -75,8 +85,8 @@ func apply_movement(desired_velocity: Vector2, delta: float) -> void:
 	if velocity.length() > max_speed:
 		velocity = velocity.normalized() * max_speed
 	
-	# Update position
-	global_position += velocity * delta
+	# Use CharacterBody2D's move_and_slide for proper collision handling
+	velocity = move_and_slide(velocity)
 
 # Get hit radius for this enemy
 func _get_self_hit_radius() -> float:
@@ -125,6 +135,5 @@ func get_performance_stats() -> Dictionary:
 # Cleanup when removed
 func _exit_tree() -> void:
 	# Notify systems that this enemy is being removed
-	var hierarchical_collision = get_node_or_null("../HierarchicalCollision") as HierarchicalCollision
-	if hierarchical_collision:
-		hierarchical_collision.clear_enemy_cache(self)
+	if _hierarchical_collision:
+		_hierarchical_collision.clear_enemy_cache(self)

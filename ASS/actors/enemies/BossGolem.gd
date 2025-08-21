@@ -8,8 +8,8 @@ func _compute_desired_velocity(delta: float) -> Vector2:
 	_cd = max(0.0, _cd - delta)
 	if _cd == 0.0:
 		_cd = slam_cooldown
-	if _target:
-		return (_target.global_position - global_position).normalized() * (move_speed * 0.75)
+	if target_position != Vector2.ZERO:
+		return (target_position - global_position).normalized() * (move_speed * 0.75)
 	return Vector2.ZERO
 
 

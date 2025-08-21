@@ -143,9 +143,11 @@ func _spawn_single_enemy(spawn_data: Dictionary) -> bool:
 	
 	# Use object pooling if available
 	if use_object_pooling and _object_pool:
-		enemy = _object_pool.get_instance() as BaseEnemy
+		enemy = _object_pool.acquire() as BaseEnemy
 		if not enemy:
 			return false
+		# Add to scene tree when using object pooling
+		add_child(enemy)
 	else:
 		# Direct instantiation
 		enemy = enemy_scene.instantiate() as BaseEnemy

@@ -8,8 +8,8 @@ func _compute_desired_velocity(delta: float) -> Vector2:
 	_timer -= delta
 	if _timer <= 0.0:
 		_timer = hop_interval
-		if _target:
-			return (_target.global_position - global_position).normalized() * move_speed
+		if target_position != Vector2.ZERO:
+			return (target_position - global_position).normalized() * move_speed
 	return Vector2.ZERO
 
 
