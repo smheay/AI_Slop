@@ -74,16 +74,10 @@ func _generate_spawn_data() -> Dictionary:
 	# Random enemy size based on distribution
 	var enemy_size = _get_random_enemy_size()
 	
-	# Random target position (could be player position)
-	var target = Vector2(
-		randf_range(-500, 500),
-		randf_range(-500, 500)
-	)
-	
+	# No need to set random target - enemies will automatically follow player
 	return {
 		"position": pos,
 		"size": enemy_size,
-		"target": target,
 		"spawned": false
 	}
 
@@ -164,9 +158,8 @@ func _spawn_single_enemy(spawn_data: Dictionary) -> bool:
 	return true
 
 func _configure_enemy(enemy: BaseEnemy, spawn_data: Dictionary) -> void:
-	# Set position and target
+	# Set position only - target will be set automatically when player spawns
 	enemy.global_position = spawn_data.position
-	enemy.set_target(spawn_data.target)
 	
 	# Configure based on size
 	var size = spawn_data.size

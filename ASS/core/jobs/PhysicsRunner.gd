@@ -28,6 +28,9 @@ func _ready() -> void:
 func set_agent_sim(sim: AgentSim) -> void:
 	_agent_sim = sim
 
+func set_hierarchical_collision(collision: HierarchicalCollision) -> void:
+	_hierarchical_collision = collision
+
 func integrate(agents: Array, delta: float) -> void:
 	if agents.is_empty():
 		return

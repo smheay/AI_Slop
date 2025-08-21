@@ -1,8 +1,8 @@
-[gd_scene load_steps=14 format=3 uid="uid://dpy8jf0j4d68a"]
+[gd_scene load_steps=15 format=3 uid="uid://dpy8jf0j4d68a"]
 
 [ext_resource type="Script" uid="uid://d0v1pjumphh5f" path="res://world/LevelRuntime.gd" id="1_1"]
 [ext_resource type="Script" uid="uid://08wpv7d53mg6" path="res://world/SystemsRunner.gd" id="1_2"]
-[ext_resource type="Script" uid="uid://bhuyx8mbdua26" path="res://core/sim/AgentSim.gd" id="1_3"]
+[ext_resource type="Script" uid="uid://bhuyxmbdua26" path="res://core/sim/AgentSim.gd" id="1_3"]
 [ext_resource type="Script" uid="uid://bp8y2gwa821kq" path="res://core/sim/SpatialHash2D.gd" id="1_4"]
 [ext_resource type="Script" uid="uid://e2xd72y1f8rd" path="res://core/sim/LODController.gd" id="1_5"]
 [ext_resource type="Script" uid="uid://bs1iissa4u7hs" path="res://core/jobs/AIRunner.gd" id="1_6"]
@@ -13,6 +13,7 @@
 [ext_resource type="PackedScene" path="res://features/spawning/Spawner.tscn" id="1_11"]
 [ext_resource type="PackedScene" path="res://actors/player/Player.tscn" id="1_12"]
 [ext_resource type="PackedScene" path="res://ui/Hotbar.tscn" id="1_13"]
+[ext_resource type="Script" path="res://core/sim/HierarchicalCollision.gd" id="1_14"]
 
 [node name="LevelRuntime" type="Node"]
 script = ExtResource("1_1")
@@ -38,6 +39,9 @@ script = ExtResource("1_4")
 
 [node name="LODController" type="Node" parent="SystemsRunner/AgentSim"]
 script = ExtResource("1_5")
+
+[node name="HierarchicalCollision" type="Node" parent="SystemsRunner"]
+script = ExtResource("1_14")
 
 [node name="AIRunner" type="Node" parent="SystemsRunner"]
 script = ExtResource("1_6")

@@ -121,13 +121,13 @@ func _compute_soft_collision(enemy: Node2D, neighbor: Node2D, push_strength: flo
 	
 	var enemy_hr = enemy._self_hit_radius if enemy.has_method("_get_self_hit_radius") else 50.0
 	var neighbor_hr = neighbor._self_hit_radius if neighbor.has_method("_get_self_hit_radius") else 50.0
-	var min_sep = enemy_hr + neighbor_hr + 10.0  # Small padding
+	var min_sep = enemy_hr + neighbor_hr + 20.0  # Increased padding for better separation
 	var min_sep_sq = min_sep * min_sep
 	
 	if dist_sq < min_sep_sq:
-		# Soft push - reduced strength
+		# Soft push - increased strength for better separation
 		var inv_dist = 1.0 / sqrt(dist_sq)
-		var penetration = (min_sep * inv_dist - 1.0) * push_strength * 0.5
+		var penetration = (min_sep * inv_dist - 1.0) * push_strength * 1.5  # Increased from 0.5
 		return away * penetration
 	
 	return Vector2.ZERO
@@ -142,13 +142,13 @@ func _compute_hard_collision(enemy: Node2D, neighbor: Node2D) -> Vector2:
 	
 	var enemy_hr = enemy._self_hit_radius if enemy.has_method("_get_self_hit_radius") else 50.0
 	var neighbor_hr = neighbor._self_hit_radius if neighbor.has_method("_get_self_hit_radius") else 50.0
-	var min_sep = enemy_hr + neighbor_hr + 20.0  # Larger padding for hard collision
+	var min_sep = enemy_hr + neighbor_hr + 30.0  # Increased padding for hard collision
 	var min_sep_sq = min_sep * min_sep
 	
 	if dist_sq < min_sep_sq:
-		# Hard push - full strength
+		# Hard push - increased strength for better separation
 		var inv_dist = 1.0 / sqrt(dist_sq)
-		var penetration = (min_sep * inv_dist - 1.0) * 2.0
+		var penetration = (min_sep * inv_dist - 1.0) * 3.0  # Increased from 2.0
 		return away * penetration
 	
 	return Vector2.ZERO

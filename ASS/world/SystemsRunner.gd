@@ -15,12 +15,14 @@ func _enter_tree() -> void:
 var _agent_sim: AgentSim
 var _ai_runner: AIRunner
 var _physics_runner: PhysicsRunner
+var _hierarchical_collision: HierarchicalCollision
 
 func _ready() -> void:
 	# Auto-find all systems instead of relying on NodePath exports
 	_agent_sim = get_node_or_null("AgentSim") as AgentSim
 	_ai_runner = get_node_or_null("AIRunner") as AIRunner
 	_physics_runner = get_node_or_null("PhysicsRunner") as PhysicsRunner
+	_hierarchical_collision = get_node_or_null("HierarchicalCollision") as HierarchicalCollision
 	
 	# Verify all systems are found
 	if not _agent_sim:
@@ -32,9 +34,13 @@ func _ready() -> void:
 	if not _physics_runner:
 		Log.error("SystemsRunner: PhysicsRunner not found")
 		return
+	if not _hierarchical_collision:
+		Log.error("SystemsRunner: HierarchicalCollision not found")
+		return
 	
 	# Inject dependencies
 	_physics_runner.set_agent_sim(_agent_sim)
+	_physics_runner.set_hierarchical_collision(_hierarchical_collision)
 	
 	# Verify we're in the scene tree
 	Log.info("SystemsRunner ready. Scene tree: " + str(get_tree().current_scene.name))

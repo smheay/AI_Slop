@@ -22,6 +22,7 @@ var _enemy_pool: ObjectPool
 var _spatial_hash: SpatialHash2D
 var _spawn_positions: Array[Vector2] = []
 var _spawn_position_index: int = 0
+var _agent_sim: AgentSim  # Reference to AgentSim for enemy registration
 
 var _spawn_accum: float = 0.0
 var _last_ui_count := -1
@@ -29,10 +30,11 @@ var _last_ui_count := -1
 func _ready() -> void:
 	_rng.randomize()
 	
-	# Optional spatial hash (for spawn clearance)
-	var systems := get_tree().current_scene.get_node_or_null("SystemsRunner/AgentSim")
+	# Find required systems
+	var systems := get_tree().current_scene.get_node_or_null("SystemsRunner")
 	if systems:
-		_spatial_hash = systems.get_node_or_null("SpatialHash2D") as SpatialHash2D
+		_agent_sim = systems.get_node_or_null("AgentSim") as AgentSim
+		_spatial_hash = systems.get_node_or_null("AgentSim/SpatialHash2D") as SpatialHash2D
 	
 	_create_enemy_pool()
 	_create_count_ui()
@@ -111,6 +113,10 @@ func _spawn_enemy() -> bool:
 		# Add to scene
 		get_tree().current_scene.add_child(node)
 		
+		# Register with AgentSim for AI and physics processing
+		if _agent_sim:
+			_agent_sim.register_agent(node)
+		
 		# Track alive enemies
 		_alive.append(node)
 		
@@ -161,6 +167,10 @@ func _spawn_enemy_batch(count: int) -> int:
 			
 			# Add to scene
 			get_tree().current_scene.add_child(inst)
+			
+			# Register with AgentSim for AI and physics processing
+			if _agent_sim:
+				_agent_sim.register_agent(inst)
 			
 			# Track alive enemies
 			_alive.append(inst)
@@ -232,6 +242,10 @@ func _on_enemy_despawn(enemy: Node2D) -> void:
 		var be := enemy as BaseEnemy
 		if be.despawn_requested.is_connected(_on_enemy_despawn):
 			be.despawn_requested.disconnect(_on_enemy_despawn)
+	
+	# Unregister from AgentSim
+	if _agent_sim:
+		_agent_sim.unregister_agent(enemy)
 	
 	# Remove from our tracking
 	_alive.erase(enemy)
