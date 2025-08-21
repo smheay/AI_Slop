@@ -55,23 +55,3 @@ func query_radius(center: Vector2, radius: float) -> Array:
 				if n2d and (n2d.global_position - center).length_squared() <= r2:
 					results.append(n2d)
 	return results
-
-func query_nearby_collisions(agent: Node2D, max_distance: float) -> Array:
-	# Only return agents within collision range for performance
-	return query_radius(agent.global_position, max_distance)
-
-func get_collision_candidates(agent: Node2D, separation_radius: float) -> Array:
-	# Optimized collision detection - only check nearby agents
-	var nearby = query_radius(agent.global_position, separation_radius * 2.0)
-	var candidates: Array = []
-	
-	for other in nearby:
-		if other != agent and other.has_method("get_separation_radius"):
-			var other_radius = other.call("get_separation_radius")
-			var combined_radius = separation_radius + other_radius
-			var distance = agent.global_position.distance_to(other.global_position)
-			
-			if distance < combined_radius:
-				candidates.append(other)
-	
-	return candidates

@@ -4,7 +4,6 @@ class_name AgentSim
 signal agents_updated(count: int)
 
 @export var spatial_hash: NodePath
-@export var lod_controller: NodePath
 
 var _agents: Array[Node2D] = []
 var _spatial_hash: SpatialHash2D
@@ -32,13 +31,23 @@ func step_simulation(delta: float) -> void:
 		for agent in _agents:
 			if is_instance_valid(agent):
 				_spatial_hash.move(agent)
-	
-	emit_signal("agents_updated", _agents.size())
+	# Do not emit agents_updated every frame; this is emitted on register/unregister.
 
 func get_agents() -> Array:
-	return _agents.duplicate()
+	# Return the internal list directly to avoid per-frame allocations.
+	# Treat as read-only outside of AgentSim.
+	return _agents
 
 func get_agent_count() -> int:
 	return _agents.size()
+
+func get_neighbors(agent: Node2D, radius: float) -> Array:
+	if _spatial_hash == null:
+		return []
+	return _spatial_hash.query_radius(agent.global_position, radius)
+
+func sync_from_nodes(delta: float) -> void:
+	# Keep a single code path; sync is equivalent to step_simulation.
+	step_simulation(delta)
 
 

@@ -13,9 +13,15 @@ var _alive: Array[Node] = []
 var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
 var _count_label: Label
 var _enemy_pool: ObjectPool
+var _spatial_hash: SpatialHash2D
 
 func _ready() -> void:
 	_rng.randomize()
+	
+	# Optional spatial hash access (for spawn clearance)
+	var systems := get_tree().current_scene.get_node_or_null("SystemsRunner/AgentSim") as AgentSim
+	if systems:
+		_spatial_hash = systems.get_node_or_null("SpatialHash2D") as SpatialHash2D
 	
 	# Create enemy pool
 	_create_enemy_pool()
@@ -44,7 +50,7 @@ func _spawn_enemy() -> void:
 		var pos: Vector2
 		while attempts < 10:
 			var ang := _rng.randf_range(0.0, TAU)
-			var dist := _rng.randf_range(spawn_radius * 0.3, spawn_radius)  # Avoid center clustering
+			var dist := _rng.randf_range(spawn_radius * 0.3, spawn_radius)
 			pos = global_position + Vector2(cos(ang), sin(ang)) * dist
 			if _is_position_clear(pos):
 				break
@@ -64,9 +70,12 @@ func _spawn_enemy() -> void:
 		get_tree().current_scene.add_child(inst)
 		inst.add_to_group(group_tag)
 		
-		# Reconnect death signal (in case it was disconnected)
-		if not inst.tree_exited.is_connected(_on_enemy_died.bind(inst)):
-			inst.tree_exited.connect(_on_enemy_died.bind(inst))
+		# Connect despawn signal once
+		if inst is BaseEnemy:
+			var enemy := inst as BaseEnemy
+			if not enemy.has_meta("despawn_connected"):
+				enemy.despawn_requested.connect(_on_enemy_despawn)
+				enemy.set_meta("despawn_connected", true)
 		
 		_alive.append(inst)
 		emit_signal("spawned", inst)
@@ -78,7 +87,7 @@ func _spawn_enemy() -> void:
 func _create_enemy_pool() -> void:
 	_enemy_pool = ObjectPool.new()
 	_enemy_pool.scene = spawn_scene
-	_enemy_pool.initial_size = 200  # Pre-allocate 200 enemies
+	_enemy_pool.initial_size = 200
 	add_child(_enemy_pool)
 
 func _create_count_ui() -> void:
@@ -94,21 +103,26 @@ func _update_count_ui() -> void:
 		_count_label.text = "Enemies: " + str(_alive.size()) + " / " + str(max_alive)
 
 func _is_position_clear(pos: Vector2) -> bool:
-	# Check if position is far enough from existing enemies
+	# Prefer spatial hash if available
+	if _spatial_hash:
+		var nearby := _spatial_hash.query_radius(pos, 48.0)
+		if nearby.size() == 0:
+			return true
+		return false
+	# Fallback: scan current alive list
 	for enemy in _alive:
-		if enemy.global_position.distance_to(pos) < 48.0:  # 2x enemy radius
+		if enemy.global_position.distance_to(pos) < 48.0:
 			return false
 	return true
 
-func _on_enemy_died(inst: Node) -> void:
-	_alive.erase(inst)
-	GameBus.emit_signal("enemy_despawned", inst)
+func _on_enemy_despawn(enemy: Node2D) -> void:
+	_alive.erase(enemy)
+	GameBus.emit_signal("enemy_despawned", enemy)
 	
-	# Return enemy to pool for reuse
-	if _enemy_pool and is_instance_valid(inst):
-		# Remove from scene tree but don't free
-		if inst.get_parent():
-			inst.get_parent().remove_child(inst)
-		_enemy_pool.release(inst)
+	# Remove from scene tree but don't free; return to pool
+	if _enemy_pool and is_instance_valid(enemy):
+		if enemy.get_parent():
+			enemy.get_parent().remove_child(enemy)
+		_enemy_pool.release(enemy)
 	
 	_update_count_ui()

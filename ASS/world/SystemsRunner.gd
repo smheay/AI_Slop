@@ -33,6 +33,9 @@ func _ready() -> void:
 		Log.error("SystemsRunner: PhysicsRunner not found")
 		return
 	
+	# Inject dependencies
+	_physics_runner.set_agent_sim(_agent_sim)
+	
 	# Verify we're in the scene tree
 	Log.info("SystemsRunner ready. Scene tree: " + str(get_tree().current_scene.name))
 	Log.info("SystemsRunner: All systems found successfully")
@@ -51,11 +54,11 @@ func _physics_process(delta: float) -> void:
 	# 1) AI decisions
 	_ai_runner.run_batch(agents, delta)
 	
-	# 2) Update spatial hash positions
-	_agent_sim.step_simulation(delta)
-	
-	# 3) Physics movement
+	# 2) Physics movement (applies velocity and transforms)
 	_physics_runner.integrate(agents, delta)
+	
+	# 3) Sync spatial hash after transforms
+	_agent_sim.sync_from_nodes(delta)
 
 func _get_agents() -> Array:
 	if _agent_sim:

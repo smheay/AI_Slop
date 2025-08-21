@@ -1,0 +1,81 @@
+flowchart TD
+
+  %% Spawner + Pool own lifecycle
+  subgraph Spawning_and_Pooling["Spawning & Pooling"]
+    SP_ready["Spawner._ready"]
+    SP_timer["Spawner._on_spawn_timer"]
+    SP_spawn["Spawner._spawn_enemy (choose clear spot via hash if available)"]
+    PO_acq["ObjectPool.acquire"]
+    PO_rel["ObjectPool.release"]
+    SP_on_despawn["Spawner._on_enemy_despawn"]
+  end
+
+  %% Enemy API: behavior only
+  subgraph Enemy_API_SubclassSpecific["Enemy API (Subclass-specific)"]
+    EN_ready["BaseEnemy._ready"]
+    EN_ai["BaseEnemy._ai_step"]
+    EN_vel["BaseEnemy._compute_desired_velocity"]
+    EN_apply["BaseEnemy.apply_movement (via PhysicsRunner)"]
+    EN_signal["signal despawn_requested(enemy)"]
+  end
+
+  %% Orchestrator
+  subgraph SystemsRunner
+    SR_ready["SystemsRunner._ready"]
+    SR_tick["SystemsRunner._physics_process"]
+    SR_get["SystemsRunner._get_agents"]
+  end
+
+  %% Batched AI
+  subgraph AIRunner
+    AI_run["AIRunner.run_batch(agents, delta)"]
+  end
+
+  %% Registry + spatial index (no movement)
+  subgraph AgentSim
+    AS_reg["AgentSim.register_agent"]
+    AS_unreg["AgentSim.unregister_agent"]
+    AS_agents["AgentSim.get_agents"]
+    AS_neighbors["AgentSim.get_neighbors(agent, radius)"]
+    AS_sync["AgentSim.sync_from_nodes()  (after physics)"]
+  end
+
+  subgraph SpatialHash2D
+    SH_insert["SpatialHash2D.insert"]
+    SH_move["SpatialHash2D.move"]
+    SH_remove["SpatialHash2D.remove"]
+  end
+
+  %% Batched physics: sole owner of position changes
+  subgraph PhysicsRunner
+    PH_integrate["PhysicsRunner.integrate(agents, delta)"]
+    PH_sep["PhysicsRunner.compute_separation(agent)"]
+  end
+
+  %% UI listens only to AgentSim
+  subgraph UI
+    UI_count["EnemyCountLabel.update(count)"]
+  end
+
+  %% Startup
+  SR_ready --> SR_tick
+  SP_ready --> SP_timer
+
+  %% Spawn path
+  SP_timer --> SP_spawn --> PO_acq --> EN_ready
+  EN_ready --> AS_reg --> SH_insert
+
+  %% Frame loop (deterministic)
+  SR_tick --> SR_get --> AS_agents
+  SR_tick --> AI_run --> EN_ai --> EN_vel
+  SR_tick --> PH_integrate --> PH_sep
+  AS_neighbors --> PH_sep
+  PH_integrate --> EN_apply
+  SR_tick --> AS_sync --> SH_move
+
+  %% Despawn path
+  EN_signal --> SP_on_despawn --> AS_unreg --> SH_remove --> PO_rel
+
+  %% UI
+  AS_reg --> UI_count
+  AS_unreg --> UI_count
