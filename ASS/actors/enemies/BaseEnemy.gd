@@ -1,106 +1,130 @@
-extends CharacterBody2D
+extends Node2D
 class_name BaseEnemy
-signal despawn_requested(enemy: Node2D)
 
-@export var move_speed: float = 120.0
-@export var damageable_path: NodePath
-@export var separation_radius: float = 24.0
-@export var separation_strength: float = 80.0
+# Movement properties
+@export var move_speed: float = 100.0
+@export var max_speed: float = 150.0
+@export var acceleration: float = 200.0
+@export var friction: float = 0.9
+
+# Collision properties
+@export var _self_hit_radius: float = 50.0
+@export var separation_radius: float = 80.0
+@export var separation_strength: float = 100.0
+@export var separation_padding: float = 10.0
 @export var separation_max_neighbors: int = 6
-@export var separation_padding: float = 2.0
 
-var _damageable: Node
-var _target: Node2D
-var _self_hit_radius: float = 12.0
-var _agent_sim: AgentSim
+# Performance optimization
+@export var update_frequency: int = 1  # Only update every N frames
+@export var lod_level: int = 0  # Level of detail for rendering
+
+# Internal state
+var velocity: Vector2 = Vector2.ZERO
+var target_position: Vector2 = Vector2.ZERO
+var is_active: bool = true
+var _frame_counter: int = 0
+
+# LOD and performance
+var _last_update_frame: int = 0
+var _cached_desired_velocity: Vector2 = Vector2.ZERO
+var _velocity_cache_valid: bool = false
 
 func _ready() -> void:
-	_damageable = get_node_or_null(damageable_path)
-	if _damageable and _damageable is Damageable:
-		(_damageable as Damageable).died.connect(_on_died)
-		_self_hit_radius = (_damageable as Damageable).hit_radius
-	
-	# Register with the batch system - try multiple paths
-	_agent_sim = get_tree().current_scene.get_node_or_null("SystemsRunner/AgentSim") as AgentSim
-	if not _agent_sim:
-		_agent_sim = get_tree().current_scene.get_node_or_null("AgentSim") as AgentSim
-	if not _agent_sim:
-		_agent_sim = _find_agent_sim_in_tree(get_tree().current_scene)
-	
-	if _agent_sim:
-		_agent_sim.register_agent(self)
-		Log.info("BaseEnemy: Successfully registered with AgentSim")
-	else:
-		Log.error("BaseEnemy: Could not find AgentSim anywhere in scene tree")
-	
-	# Force initial separation if spawning on top of others
-	call_deferred("_force_initial_separation")
+	# Randomize starting frame to distribute updates
+	_frame_counter = randi() % update_frequency
 
-func _on_died(source: Node) -> void:
-	# Delegate despawn lifecycle to spawner/pool
-	emit_signal("despawn_requested", self)
-
-# Called by the batch system (PhysicsRunner owns movement)
-func _physics_step(delta: float) -> void:
-	if _target == null:
-		var players := get_tree().get_nodes_in_group("player")
-		if players.size() > 0:
-			_target = players[0] as Node2D
-	# Movement is applied by PhysicsRunner.apply_movement
-
-# Called by the batch system for AI decisions
-func _ai_step(delta: float) -> void:
-	if _target == null:
-		var players := get_tree().get_nodes_in_group("player")
-		if players.size() > 0:
-			_target = players[0] as Node2D
-
-func get_separation_radius() -> float:
-	return separation_radius
-
-func _get_hit_radius_for(node: Node2D) -> float:
-	var dmg := node.get_node_or_null("Damageable")
-	if dmg and dmg is Damageable:
-		return (dmg as Damageable).hit_radius
-	return 12.0
-
-func _force_initial_separation() -> void:
-	if not _agent_sim:
+func _physics_process(delta: float) -> void:
+	if not is_active:
 		return
-	var query_radius: float = separation_radius * 2.0
-	var neighbors := _agent_sim.get_neighbors(self, query_radius)
-	var total_push := Vector2.ZERO
-	var count := 0
-	for other in neighbors:
-		if other == null or other == self:
-			continue
-		var away = global_position - other.global_position
-		var distance = away.length()
-		if distance < 1.0:
-			var push_strength := separation_strength * 2.0
-			total_push += away.normalized() * push_strength
-			count += 1
-		elif distance < query_radius:
-			var falloff = (query_radius - distance) / query_radius
-			total_push += away.normalized() * (falloff * separation_strength)
-			count += 1
-	if count > 0:
-		global_position += total_push.normalized() * 32.0
+	
+	# Only update every N frames for performance
+	_frame_counter += 1
+	if _frame_counter % update_frequency != 0:
+		return
+	
+	# Update AI and movement
+	_ai_step(delta)
 
-func _find_agent_sim_in_tree(node: Node) -> AgentSim:
-	if node is AgentSim:
-		return node as AgentSim
-	for child in node.get_children():
-		var result = _find_agent_sim_in_tree(child)
-		if result:
-			return result
-	return null
+# Main AI step - called by AI runner
+func _ai_step(delta: float) -> void:
+	if not is_active:
+		return
+	
+	# Compute desired velocity (cached for performance)
+	var desired = _compute_desired_velocity(delta)
+	
+	# Apply movement
+	apply_movement(desired, delta)
 
+# Compute desired velocity (can be overridden by subclasses)
 func _compute_desired_velocity(delta: float) -> Vector2:
-	if _target:
-		return (_target.global_position - global_position).normalized() * move_speed
-	return Vector2.ZERO
+	# Simple movement toward target
+	var direction = (target_position - global_position).normalized()
+	return direction * move_speed
 
-func apply_movement(proposed_velocity: Vector2, delta: float) -> void:
-	velocity = proposed_velocity.limit_length(move_speed)
-	move_and_slide()
+# Apply movement with physics
+func apply_movement(desired_velocity: Vector2, delta: float) -> void:
+	# Apply acceleration toward desired velocity
+	var acceleration_vector = (desired_velocity - velocity) * acceleration * delta
+	velocity += acceleration_vector
+	
+	# Apply friction
+	velocity *= friction
+	
+	# Clamp to max speed
+	if velocity.length() > max_speed:
+		velocity = velocity.normalized() * max_speed
+	
+	# Update position
+	global_position += velocity * delta
+
+# Get hit radius for this enemy
+func _get_self_hit_radius() -> float:
+	return _self_hit_radius
+
+# Get hit radius for another enemy (can be overridden for different enemy types)
+func _get_hit_radius_for(other: Node2D) -> float:
+	if other.has_method("_get_self_hit_radius"):
+		return other._get_self_hit_radius()
+	return 50.0  # Default
+
+# Set target position
+func set_target(pos: Vector2) -> void:
+	target_position = pos
+
+# Get current velocity
+func get_velocity() -> Vector2:
+	return velocity
+
+# Set velocity directly (for external control)
+func set_velocity(vel: Vector2) -> void:
+	velocity = vel
+
+# Activate/deactivate enemy
+func set_active(active: bool) -> void:
+	is_active = active
+	if not active:
+		velocity = Vector2.ZERO
+
+# Set LOD level for performance
+func set_lod_level(level: int) -> void:
+	lod_level = level
+	# Adjust update frequency based on LOD
+	update_frequency = max(1, level + 1)
+
+# Get performance stats
+func get_performance_stats() -> Dictionary:
+	return {
+		"update_frequency": update_frequency,
+		"lod_level": lod_level,
+		"is_active": is_active,
+		"velocity": velocity,
+		"hit_radius": _self_hit_radius
+	}
+
+# Cleanup when removed
+func _exit_tree() -> void:
+	# Notify systems that this enemy is being removed
+	var hierarchical_collision = get_node_or_null("../HierarchicalCollision") as HierarchicalCollision
+	if hierarchical_collision:
+		hierarchical_collision.clear_enemy_cache(self)

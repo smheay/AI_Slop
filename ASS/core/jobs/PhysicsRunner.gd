@@ -4,15 +4,16 @@ class_name PhysicsRunner
 signal physics_batch_started(count: int)
 signal physics_batch_finished(ms: float)
 
-@export var batch_size: int = 64
-@export var max_agents_per_frame: int = 10000
+@export var batch_size: int = 128  # Increased for better performance
+@export var max_agents_per_frame: int = 15000  # Increased for 5000 enemies
 
 var _agent_sim: AgentSim
+var _hierarchical_collision: HierarchicalCollision
 
 # Pre-allocated vectors to avoid allocations
 var _temp_vectors: Array[Vector2] = []
 var _temp_vectors_size: int = 0
-const MAX_TEMP_VECTORS = 256
+const MAX_TEMP_VECTORS = 512  # Increased for more enemies
 
 func _ready() -> void:
 	# Pre-allocate temporary vectors
@@ -20,6 +21,9 @@ func _ready() -> void:
 	for i in range(MAX_TEMP_VECTORS):
 		_temp_vectors[i] = Vector2.ZERO
 	_temp_vectors_size = 0
+	
+	# Get the hierarchical collision system
+	_hierarchical_collision = get_node_or_null("../HierarchicalCollision") as HierarchicalCollision
 
 func set_agent_sim(sim: AgentSim) -> void:
 	_agent_sim = sim
@@ -31,7 +35,7 @@ func integrate(agents: Array, delta: float) -> void:
 	emit_signal("physics_batch_started", agents.size())
 	var start_time := Time.get_ticks_msec()
 	
-	# Process agents in batches to avoid frame stalls
+	# Process agents in larger batches for better performance
 	var processed := 0
 	var total_agents := agents.size()
 	
@@ -46,53 +50,12 @@ func integrate(agents: Array, delta: float) -> void:
 			# Get desired velocity
 			var desired := enemy._compute_desired_velocity(delta)
 			
-			# Apply separation forces
-			if _agent_sim and enemy.separation_radius > 0.0:
-				var query_radius: float = enemy.separation_radius + (enemy._self_hit_radius * 2.0)
-				var neighbors := _agent_sim.get_neighbors(enemy, query_radius)
-				var push := Vector2.ZERO
-				var counted := 0
-				
-				for other in neighbors:
-					if other == null or other == enemy:
-						continue
-					
-					# Use pre-allocated vector
-					var away = _get_temp_vector()
-					away = enemy.global_position - other.global_position
-					
-					var dist_sq = away.length_squared()
-					if dist_sq == 0.0:
-						continue
-					
-					var other_hr := enemy._get_hit_radius_for(other)
-					var min_sep := enemy._self_hit_radius + other_hr + enemy.separation_padding
-					var min_sep_sq := min_sep * min_sep
-					
-					if dist_sq < min_sep_sq:
-						# Use inverse square root approximation for better performance
-						var inv_dist = _fast_inv_sqrt(dist_sq)
-						var penetration = (min_sep * inv_dist - 1.0) * enemy.separation_strength * 2.0
-						push += away * penetration
-						counted += 1
-					else:
-						var distance = sqrt(dist_sq)  # Only sqrt when necessary
-						var falloff = (query_radius - distance) / max(query_radius, 0.001)
-						if falloff > 0.0:
-							push += away.normalized() * (falloff * enemy.separation_strength * 0.5)
-							counted += 1
-					
-					if counted >= enemy.separation_max_neighbors:
-						break
-				
-				if counted > 0 and push != Vector2.ZERO:
-					var push_length = push.length()
-					var desired_length = desired.length()
-					
-					if push_length > desired_length * 2.0:
-						desired = push.normalized() * enemy.move_speed * 0.5
-					else:
-						desired = (desired * 0.6) + (push.normalized() * enemy.separation_strength * 0.4)
+			# Apply hierarchical collision response instead of old separation system
+			if _hierarchical_collision:
+				desired = _hierarchical_collision.compute_hierarchical_collision_response(enemy, desired, delta)
+			else:
+				# Fallback to old system if hierarchical collision not available
+				desired = _apply_legacy_separation(enemy, desired)
 			
 			# Apply movement
 			enemy.apply_movement(desired, delta)
@@ -106,19 +69,40 @@ func integrate(agents: Array, delta: float) -> void:
 	var end_time := Time.get_ticks_msec()
 	emit_signal("physics_batch_finished", end_time - start_time)
 
-# Fast inverse square root approximation (Quake III algorithm)
-func _fast_inv_sqrt(x: float) -> float:
-	var i = _float_to_int_bits(x)
-	i = 0x5f3759df - (i >> 1)
-	var y = _int_bits_to_float(i)
-	return y * (1.5 - 0.5 * x * y * y)
-
-func _float_to_int_bits(f: float) -> int:
-	# This is a simplified version - in practice you'd use bit operations
-	return int(f * 1000000.0)  # Approximation for demo purposes
-
-func _int_bits_to_float(i: int) -> float:
-	return float(i) / 1000000.0  # Approximation for demo purposes
+# Legacy separation system as fallback (simplified for performance)
+func _apply_legacy_separation(enemy: BaseEnemy, desired: Vector2) -> Vector2:
+	if not _agent_sim or enemy.separation_radius <= 0.0:
+		return desired
+	
+	var query_radius: float = enemy.separation_radius + (enemy._self_hit_radius * 1.5)
+	var neighbors := _agent_sim.get_neighbors(enemy, query_radius)
+	var push := Vector2.ZERO
+	var counted := 0
+	const MAX_LEGACY_NEIGHBORS = 4  # Reduced for performance
+	
+	for other in neighbors:
+		if other == null or other == enemy or counted >= MAX_LEGACY_NEIGHBORS:
+			continue
+		
+		var away = enemy.global_position - other.global_position
+		var dist_sq = away.length_squared()
+		if dist_sq == 0.0:
+			continue
+		
+		var other_hr := enemy._get_hit_radius_for(other)
+		var min_sep := enemy._self_hit_radius + other_hr + enemy.separation_padding
+		var min_sep_sq := min_sep * min_sep
+		
+		if dist_sq < min_sep_sq:
+			var inv_dist = 1.0 / sqrt(dist_sq)
+			var penetration = (min_sep * inv_dist - 1.0) * enemy.separation_strength
+			push += away * penetration
+			counted += 1
+	
+	if counted > 0 and push != Vector2.ZERO:
+		desired = (desired * 0.7) + (push.normalized() * enemy.separation_strength * 0.3)
+	
+	return desired
 
 # Get a pre-allocated temporary vector
 func _get_temp_vector() -> Vector2:
