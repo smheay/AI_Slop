@@ -12,12 +12,16 @@ signal spawned(node: Node)
 @export var min_spawn_gap: float = 48.0      # clearance radius between spawns
 @export var max_per_tick: int = 24           # cap spawns per physics frame
 @export var max_spawn_attempts: int = 10     # attempts to find a clear spot
+@export var use_batch_spawning: bool = true  # Enable batch spawn operations
+@export var spawn_grid_size: float = 64.0    # Grid size for spawn position optimization
 
 var _alive: Array[Node2D] = []
 var _rng := RandomNumberGenerator.new()
 var _count_label: Label
 var _enemy_pool: ObjectPool
 var _spatial_hash: SpatialHash2D
+var _spawn_positions: Array[Vector2] = []
+var _spawn_position_index: int = 0
 
 var _spawn_accum: float = 0.0
 var _last_ui_count := -1
@@ -32,6 +36,7 @@ func _ready() -> void:
 	
 	_create_enemy_pool()
 	_create_count_ui()
+	_precompute_spawn_positions()
 	
 	# We drive spawns from _physics_process deterministically.
 	set_physics_process(true)
@@ -56,12 +61,20 @@ func _physics_process(delta: float) -> void:
 		return
 	
 	var spawned_this_tick := 0
-	while spawned_this_tick < to_spawn:
-		if _spawn_enemy():
-			spawned_this_tick += 1
-		else:
-			# Couldn't find a clear spot this attempt; stop early to avoid a long loop.
-			break
+	
+	# Use batch spawning when possible
+	if use_batch_spawning and to_spawn > 1:
+		var batch_size = min(to_spawn, max_per_tick)
+		var batch_spawned = _spawn_enemy_batch(batch_size)
+		spawned_this_tick = batch_spawned
+	else:
+		# Individual spawning
+		while spawned_this_tick < to_spawn and spawned_this_tick < max_per_tick:
+			if _spawn_enemy():
+				spawned_this_tick += 1
+			else:
+				# Couldn't find a clear spot this attempt; stop early to avoid a long loop.
+				break
 	
 	# consume the accumulator by how many we actually spawned
 	_spawn_accum -= float(spawned_this_tick)
@@ -98,55 +111,120 @@ func _spawn_enemy() -> bool:
 		# Add to scene
 		get_tree().current_scene.add_child(node)
 		
-		# Group bookkeeping
-		if not node.is_in_group(group_tag):
-			node.add_to_group(group_tag)
-		
-		# Connect despawn once per lifecycle; we disconnect on despawn (important for pooling)
-		if inst is BaseEnemy:
-			var enemy := inst as BaseEnemy
-			# Avoid duplicate connects across reuse
-			if not enemy.despawn_requested.is_connected(_on_enemy_despawn):
-				enemy.despawn_requested.connect(_on_enemy_despawn)
-		
+		# Track alive enemies
 		_alive.append(node)
-		spawned.emit(node)
-		GameBus.emit_signal("enemy_spawned", node)
+		
+		# Connect despawn signal
+		if node.has_signal("despawn_requested"):
+			node.despawn_requested.connect(_on_enemy_despawn)
+		
+		emit_signal("spawned", node)
 		return true
 	
-	# If the scene isn't Node2D, just release it; we only handle 2D here.
-	_enemy_pool.release(inst)
 	return false
 
-func _pick_clear_spawn_position() -> Variant:
-	var attempts := 0
-	var pos := Vector2.ZERO
-	var gap2 := min_spawn_gap * min_spawn_gap
+# Batch spawning for better performance
+func _spawn_enemy_batch(count: int) -> int:
+	if not _enemy_pool or not _enemy_pool.has_method("acquire_batch"):
+		return 0
 	
-	while attempts < max_spawn_attempts:
-		attempts += 1
-		var ang := _rng.randf_range(0.0, TAU)
-		var dist := _rng.randf_range(spawn_radius * 0.3, spawn_radius)
-		pos = global_position + Vector2(cos(ang), sin(ang)) * dist
+	var instances = _enemy_pool.acquire_batch(count)
+	if instances.is_empty():
+		return 0
+	
+	var spawned_count = 0
+	var clear_positions: Array[Vector2] = []
+	
+	# Find clear positions for all instances
+	for i in range(instances.size()):
+		var pos = _pick_clear_spawn_position()
+		if pos != null:
+			clear_positions.append(pos)
+		else:
+			break
+	
+	# Spawn instances with clear positions
+	for i in range(clear_positions.size()):
+		var inst = instances[i] as Node2D
+		var pos = clear_positions[i]
 		
-		if _is_position_clear(pos, gap2):
+		if inst and pos != null:
+			# Reset state for reuse
+			inst.visible = true
+			inst.set_process(true)
+			inst.set_physics_process(true)
+			inst.global_position = pos
+			
+			# Ensure not already parented
+			if inst.get_parent():
+				inst.get_parent().remove_child(inst)
+			
+			# Add to scene
+			get_tree().current_scene.add_child(inst)
+			
+			# Track alive enemies
+			_alive.append(inst)
+			
+			# Connect despawn signal
+			if inst.has_signal("despawn_requested"):
+				inst.despawn_requested.connect(_on_enemy_despawn)
+			
+			emit_signal("spawned", inst)
+			spawned_count += 1
+	
+	# Release unused instances back to pool
+	for i in range(spawned_count, instances.size()):
+		_enemy_pool.release(instances[i])
+	
+	return spawned_count
+
+# Pre-compute spawn positions in a grid pattern for better performance
+func _precompute_spawn_positions() -> void:
+	var center = global_position
+	var grid_radius = int(spawn_radius / spawn_grid_size)
+	
+	for y in range(-grid_radius, grid_radius + 1):
+		for x in range(-grid_radius, grid_radius + 1):
+			var pos = center + Vector2(x * spawn_grid_size, y * spawn_grid_size)
+			if pos.distance_to(center) <= spawn_radius:
+				_spawn_positions.append(pos)
+	
+	# Shuffle positions for randomness
+	_spawn_positions.shuffle()
+
+func _pick_clear_spawn_position() -> Vector2:
+	if _spawn_positions.is_empty():
+		return _pick_random_spawn_position()
+	
+	# Try pre-computed positions first
+	for attempt in range(max_spawn_attempts):
+		var pos = _spawn_positions[_spawn_position_index]
+		_spawn_position_index = (_spawn_position_index + 1) % _spawn_positions.size()
+		
+		if _is_position_clear(pos):
 			return pos
 	
-	# None found
+	# Fallback to random positions
+	return _pick_random_spawn_position()
+
+func _pick_random_spawn_position() -> Vector2:
+	for attempt in range(max_spawn_attempts):
+		var angle = _rng.randf() * TAU
+		var distance = _rng.randf_range(min_spawn_gap, spawn_radius)
+		var pos = global_position + Vector2(cos(angle), sin(angle)) * distance
+		
+		if _is_position_clear(pos):
+			return pos
+	
 	return null
 
-func _is_position_clear(pos: Vector2, gap2: float) -> bool:
-	# Prefer spatial hash if available
-	if _spatial_hash:
-		var nearby := _spatial_hash.query_radius(pos, min_spawn_gap)
-		# If your hash returns agent records, you may need to map to positions here.
-		return nearby.size() == 0
+func _is_position_clear(pos: Vector2) -> bool:
+	if _spatial_hash == null:
+		return true
 	
-	# Fallback: scan current alive list (O(n)), squared distance to avoid sqrt
-	for enemy in _alive:
-		if (enemy.global_position - pos).length_squared() < gap2:
-			return false
-	return true
+	# Check if position is clear using spatial hash
+	var nearby = _spatial_hash.query_radius(pos, min_spawn_gap)
+	return nearby.is_empty()
 
 func _on_enemy_despawn(enemy: Node2D) -> void:
 	# Disconnect so pooled nodes don't stack multiple connections
