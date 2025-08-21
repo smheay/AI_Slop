@@ -1,0 +1,52 @@
+[gd_scene load_steps=3 format=3 uid="uid://bqxqxqxqxqxqx"]
+
+[ext_resource type="Script" path="res://world/OptimizedSystemsRunner.gd" id="1_0"]
+[ext_resource type="Script" path="res://world/PerformanceTest.gd" id="2_0"]
+
+[node name="PerformanceTest" type="Node2D"]
+script = ExtResource("2_0")
+
+[node name="OptimizedSystemsRunner" type="Node" parent="."]
+script = ExtResource("1_0")
+
+[node name="Camera2D" type="Camera2D" parent="."]
+position = Vector2(0, 0)
+zoom = Vector2(0.5, 0.5)
+
+[node name="UI" type="CanvasLayer" parent="."]
+
+[node name="PerformanceLabel" type="Label" parent="UI"]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -300.0
+offset_right = -10.0
+offset_top = 10.0
+offset_bottom = 200.0
+text = "Performance Monitor
+Entities: 0
+FPS: 0
+Memory: 0 MB
+LOD Stats:
+- High: 0
+- Medium: 0
+- Low: 0
+- Minimal: 0"
+vertical_alignment = 1
+
+[node name="InstructionsLabel" type="Label" parent="UI"]
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 10.0
+offset_right = 400.0
+offset_top = -150.0
+offset_bottom = -10.0
+text = "Controls:
+1 - Spawn 1000 entities
+2 - Spawn 2000 entities
+3 - Spawn 5000 entities
+C - Clear all entities
+P - Print performance summary
+R - Reset test"
+vertical_alignment = 1
