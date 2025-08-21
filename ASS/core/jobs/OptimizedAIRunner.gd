@@ -16,8 +16,8 @@ var _temp_targets: Array[Vector2] = []
 var _temp_ai_states: Array[int] = []
 
 # Performance settings
-var batch_size: int = 128
-var max_entities_per_frame: int = 2000
+var batch_size: int = 64  # Reduced from 128 to 64
+var max_entities_per_frame: int = 1000  # Reduced from 2000 to 1000
 var ai_update_interval: float = 0.016  # 60 FPS default
 
 func _init(entity_data_ref: EntityData, lod_system_ref: LODSystem) -> void:
@@ -69,14 +69,14 @@ func _process_ai_batch(entities: Array[int], start_idx: int, end_idx: int, delta
 		# Update AI based on LOD level
 		var lod_level = lod_system.entity_lod_levels[entity_id]
 		
-		# Debug: Log LOD levels for first few entities
-		if entity_id < 5:
-			Log.info("Entity %d: pos=%s, LOD=%d, should_update=%s" % [
-				entity_id, 
-				str(position), 
-				lod_level, 
-				str(lod_system.should_update_ai(entity_id))
-			])
+			# Debug: Log LOD levels for first few entities
+	if entity_id < 5:
+		print("Entity %d: pos=%s, LOD=%d, should_update=%s" % [
+			entity_id, 
+			str(position), 
+			lod_level, 
+			str(lod_system.should_update_ai(entity_id))
+		])
 		
 		_update_entity_ai(entity_id, position, ai_state, move_speed, lod_level, delta)
 
@@ -95,12 +95,19 @@ func _update_entity_ai(entity_id: int, position: Vector2, ai_state: int, move_sp
 		# Minimal LOD: No AI updates
 		return
 	
+	# Ensure we have a non-zero velocity if player is reachable
+	if desired_velocity.length_squared() < 0.1 and player_position.distance_squared_to(position) > 100.0:
+		# Fallback: basic movement toward player
+		var to_player = player_position - position
+		if to_player.length_squared() > 0.1:
+			desired_velocity = to_player.normalized() * move_speed * 0.5
+	
 	# Update entity data
 	entity_data.set_entity_desired_velocity(entity_id, desired_velocity)
 	
 	# Debug log first entity occasionally
 	if entity_id == 0 and randf() < 0.01:  # 1% chance for entity 0
-		Log.info("Entity 0 AI: pos=%s, player=%s, desired_vel=%s" % [str(position), str(player_position), str(desired_velocity)])
+		print("Entity 0 AI: pos=%s, player=%s, desired_vel=%s, LOD=%d" % [str(position), str(player_position), str(desired_velocity), lod_level])
 
 func _compute_ai_velocity(position: Vector2, ai_state: int, move_speed: float) -> Vector2:
 	# Basic AI: move towards player
@@ -110,12 +117,15 @@ func _compute_ai_velocity(position: Vector2, ai_state: int, move_speed: float) -
 	if distance > 0.1:
 		var direction = to_player.normalized()
 		
-		# Add some randomness for more natural movement
-		var random_offset = Vector2(randf_range(-0.2, 0.2), randf_range(-0.2, 0.2))
+		# Add some randomness for more natural movement (reduced randomness)
+		var random_offset = Vector2(randf_range(-0.1, 0.1), randf_range(-0.1, 0.1))
 		direction += random_offset
 		direction = direction.normalized()
 		
-		return direction * move_speed
+		# Ensure minimum movement speed
+		var final_speed = max(move_speed * 0.8, 50.0)  # At least 50 pixels/second
+		
+		return direction * final_speed
 	
 	return Vector2.ZERO
 
@@ -126,7 +136,9 @@ func _compute_simple_ai_velocity(position: Vector2, move_speed: float) -> Vector
 	
 	if distance > 50.0:  # Only move if far from player
 		var direction = to_player.normalized()
-		return direction * move_speed * 0.5  # Slower movement
+		# Ensure minimum movement speed even for low LOD
+		var final_speed = max(move_speed * 0.6, 40.0)  # At least 40 pixels/second
+		return direction * final_speed
 	
 	return Vector2.ZERO
 

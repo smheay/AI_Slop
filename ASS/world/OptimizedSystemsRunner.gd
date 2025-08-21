@@ -42,7 +42,7 @@ func _ready() -> void:
 	set_physics_process(true)
 	
 	emit_signal("systems_ready")
-	Log.info("OptimizedSystemsRunner: Ready with capacity for %d entities" % max_entities)
+	print("OptimizedSystemsRunner: Ready with capacity for %d entities" % max_entities)
 
 func _create_spawner() -> void:
 	# Create spawner as child node
@@ -71,7 +71,7 @@ func _physics_process(delta: float) -> void:
 		
 		# Debug log player position occasionally
 		if frame_count % 300 == 0:
-			Log.info("Player position: %s, Entities: %d" % [str(player_pos), entity_manager.get_entity_count()])
+			print("Player position: %s, Entities: %d" % [str(player_pos), entity_manager.get_entity_count()])
 		
 		# Update simulation
 		entity_manager.update_simulation(delta)
@@ -105,31 +105,31 @@ func _update_performance_monitoring() -> void:
 	# Emit performance update
 	emit_signal("performance_updated", stats)
 	
-	# Log performance every 5 seconds
-	if frame_count % 300 == 0:
-		Log.info("Performance: %d entities, %d FPS, %d MB memory" % [
-			stats.entity_count,
-			stats.fps,
-			stats.memory_usage / 1024 / 1024
-		])
-		
-		# Also log spawner info
-		if spawner:
-			Log.info("Spawner: Rate %.1f, Max Alive %d, Current %d" % [
-				spawner.spawn_rate,
-				spawner.max_alive,
-				entity_manager.get_entity_count() if entity_manager else 0
+			# Log performance every 5 seconds
+		if frame_count % 300 == 0:
+			print("Performance: %d entities, %d FPS, %d MB memory" % [
+				stats.entity_count,
+				stats.fps,
+				stats.memory_usage / 1024 / 1024
 			])
-		
-		# Log LOD stats
-		if entity_manager and stats.has("lod_stats"):
-			var lod_stats = stats.lod_stats
-			Log.info("LOD: High=%d, Med=%d, Low=%d, Min=%d" % [
-				lod_stats.get("high_detail", 0),
-				lod_stats.get("medium_detail", 0),
-				lod_stats.get("low_detail", 0),
-				lod_stats.get("minimal_detail", 0)
-			])
+			
+			# Also log spawner info
+			if spawner:
+				print("Spawner: Rate %.1f, Max Alive %d, Current %d" % [
+					spawner.spawn_rate,
+					spawner.max_alive,
+					entity_manager.get_entity_count() if entity_manager else 0
+				])
+			
+			# Log LOD stats
+			if entity_manager and stats.has("lod_stats"):
+				var lod_stats = stats.lod_stats
+				print("LOD: High=%d, Med=%d, Low=%d, Min=%d" % [
+					lod_stats.get("high_detail", 0),
+					lod_stats.get("medium_detail", 0),
+					lod_stats.get("low_detail", 0),
+					lod_stats.get("minimal_detail", 0)
+				])
 
 func _on_performance_updated(stats: Dictionary) -> void:
 	# Handle performance updates
@@ -169,7 +169,7 @@ func spawn_entities(count: int) -> void:
 	# Let the spawner handle it naturally
 	# The spawner will respect max_alive limit
 	
-	Log.info("OptimizedSystemsRunner: Requested spawn of %d entities" % count)
+	print("OptimizedSystemsRunner: Requested spawn of %d entities" % count)
 
 func clear_all_entities() -> void:
 	if entity_manager:

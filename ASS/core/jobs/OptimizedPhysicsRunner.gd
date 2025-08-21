@@ -17,8 +17,8 @@ var _temp_separation_forces: Array[Vector2] = []
 var _temp_velocities: Array[Vector2] = []
 
 # Performance settings
-var batch_size: int = 128
-var max_entities_per_frame: int = 2000
+var batch_size: int = 64  # Reduced from 128 to 64
+var max_entities_per_frame: int = 1000  # Reduced from 2000 to 1000
 var separation_radius_multiplier: float = 1.5
 
 func _init(entity_data_ref: EntityData, spatial_hash_ref: OptimizedSpatialHash, lod_system_ref: LODSystem) -> void:
@@ -59,9 +59,9 @@ func _process_physics_batch(entities: Array[int], start_idx: int, end_idx: int, 
 		
 		# Check if entity should be processed this frame
 		if not lod_system.should_update_physics(entity_id):
-			# Debug: Log why entities are being skipped
-			if entity_id < 5:
-				Log.info("Entity %d PHYSICS SKIPPED: LOD says no update" % entity_id)
+					# Debug: Log why entities are being skipped
+		if entity_id < 5:
+			print("Entity %d PHYSICS SKIPPED: LOD says no update" % entity_id)
 			continue
 		
 		# Get entity data
@@ -87,7 +87,7 @@ func _process_physics_batch(entities: Array[int], start_idx: int, end_idx: int, 
 		
 		# Debug: Log position updates for first few entities
 		if entity_id < 5:
-			Log.info("Entity %d PHYSICS: pos=%s, vel=%s, desired=%s" % [
+			print("Entity %d PHYSICS: pos=%s, vel=%s, desired=%s" % [
 				entity_id, str(new_position), str(final_velocity), str(desired_velocity)
 			])
 		

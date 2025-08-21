@@ -29,7 +29,7 @@ func _ready() -> void:
 	_start_performance_test()
 
 func _on_systems_ready() -> void:
-	Log.info("PerformanceTest: Systems ready, starting test...")
+	print("PerformanceTest: Systems ready, starting test...")
 	_start_performance_test()
 
 func _start_performance_test() -> void:
@@ -39,7 +39,7 @@ func _start_performance_test() -> void:
 	test_started = true
 	test_start_time = Time.get_unix_time_from_system()
 	
-	Log.info("PerformanceTest: Starting performance test with target of %d entities" % target_entity_count)
+	print("PerformanceTest: Starting performance test with target of %d entities" % target_entity_count)
 	
 	# Set spawner to high rate to quickly reach target
 	if systems_runner:
@@ -65,7 +65,7 @@ func _on_target_reached() -> void:
 	_has_reached_target = true
 	var elapsed = Time.get_unix_time_from_system() - test_start_time
 	
-	Log.info("PerformanceTest: Target of %d entities reached in %.2f seconds!" % [target_entity_count, elapsed])
+	print("PerformanceTest: Target of %d entities reached in %.2f seconds!" % [target_entity_count, elapsed])
 	
 	# Reduce spawn rate to maintain target
 	if systems_runner:
@@ -161,7 +161,7 @@ func _input(event: InputEvent) -> void:
 			KEY_P:
 				# Print performance summary
 				var summary = get_performance_summary()
-				Log.info("Performance Summary: %s" % summary)
+				print("Performance Summary: %s" % summary)
 			KEY_R:
 				# Reset test
 				_reset_test()
@@ -179,7 +179,7 @@ func _reset_test() -> void:
 	entity_history.clear()
 	memory_history.clear()
 	
-	Log.info("PerformanceTest: Test reset")
+	print("PerformanceTest: Test reset")
 	
 	# Restart after delay
 	await get_tree().create_timer(1.0).timeout

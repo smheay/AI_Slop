@@ -64,7 +64,7 @@ func create_entity(position: Vector2, properties: Dictionary = {}) -> int:
 	
 	# Debug: Log entity creation for first few entities
 	if entity_id < 5:
-		Log.info("Entity %d CREATED: pos=%s, props=%s" % [entity_id, str(position), str(properties)])
+		print("Entity %d CREATED: pos=%s, props=%s" % [entity_id, str(position), str(properties)])
 	
 	# Add to spatial hash
 	spatial_hash.insert_entity(entity_id, position)

@@ -11,9 +11,9 @@ var entity_manager: OptimizedEntityManager
 @export var spawn_radius: float = 300.0        # Reduced spawn radius for closer spawning
 @export var spawn_rate: float = 100.0        # entities per second
 @export var max_alive: int = 5000
-@export var spawn_burst: int = 20            # entities per spawn tick (reduced to prevent lag)
+@export var spawn_burst: int = 10            # entities per spawn tick (reduced from 20 to 10)
 @export var min_spawn_gap: float = 32.0     # clearance radius between spawns
-@export var max_per_tick: int = 5           # cap spawns per physics frame to prevent lag
+@export var max_per_tick: int = 3           # cap spawns per physics frame (reduced from 5 to 3)
 
 var _spawn_accum: float = 0.0
 var _rng := RandomNumberGenerator.new()
