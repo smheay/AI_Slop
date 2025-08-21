@@ -22,15 +22,12 @@ command_parser_path = NodePath("CommandParser")
 command_bindings_path = NodePath("CommandBindings")
 
 [node name="Background" type="Polygon2D" parent="."]
-polygon = PackedVector2Array(-10000, -10000, 10000, -10000, 10000, 10000, -10000, 10000)
-color = Color(0.3, 0.3, 0.3, 1)
 z_index = -100
+color = Color(0.3, 0.3, 0.3, 1)
+polygon = PackedVector2Array(-10000, -10000, 10000, -10000, 10000, 10000, -10000, 10000)
 
 [node name="SystemsRunner" type="Node" parent="."]
 script = ExtResource("1_2")
-agent_sim_path = NodePath("AgentSim")
-ai_runner_path = NodePath("AIRunner")
-physics_runner_path = NodePath("PhysicsRunner")
 
 [node name="AgentSim" type="Node" parent="SystemsRunner"]
 script = ExtResource("1_3")
@@ -62,10 +59,11 @@ script = ExtResource("1_10")
 [node name="Spawner" parent="." instance=ExtResource("1_11")]
 
 [node name="Player" parent="." instance=ExtResource("1_12")]
-position = Vector2(0, 0)
 
 [node name="HUD" type="CanvasLayer" parent="."]
 layer = 128
 
 [node name="Hotbar" parent="HUD" instance=ExtResource("1_13")]
+anchors_preset = 7
+
 [node name="VFXLayer" type="Node2D" parent="."]

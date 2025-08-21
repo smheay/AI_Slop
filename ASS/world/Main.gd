@@ -15,5 +15,3 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if systems_runner:
 		systems_runner.step_frame(delta)
-
-

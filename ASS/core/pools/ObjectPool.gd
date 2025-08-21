@@ -29,5 +29,3 @@ func release(inst: Node) -> void:
 	(inst as Node).set_process(false)
 	_in_use.erase(inst)
 	_pool.append(inst)
-
-

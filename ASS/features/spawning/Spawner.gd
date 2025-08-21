@@ -12,9 +12,13 @@ signal spawned(node: Node)
 var _alive: Array[Node] = []
 var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
 var _count_label: Label
+var _enemy_pool: ObjectPool
 
 func _ready() -> void:
 	_rng.randomize()
+	
+	# Create enemy pool
+	_create_enemy_pool()
 	
 	# Create enemy count UI
 	_create_count_ui()
@@ -33,27 +37,49 @@ func _on_spawn_timer() -> void:
 			_spawn_enemy()
 
 func _spawn_enemy() -> void:
-	var inst: Node = spawn_scene.instantiate()
+	var inst: Node = _enemy_pool.acquire()
 	if inst is Node2D:
 		# Use a much larger spawn radius and ensure minimum distance between spawns
 		var attempts := 0
 		var pos: Vector2
-		repeat:
+		while attempts < 10:
 			var ang := _rng.randf_range(0.0, TAU)
 			var dist := _rng.randf_range(spawn_radius * 0.3, spawn_radius)  # Avoid center clustering
 			pos = global_position + Vector2(cos(ang), sin(ang)) * dist
+			if _is_position_clear(pos):
+				break
 			attempts += 1
-		until _is_position_clear(pos) or attempts >= 10
 		
 		(inst as Node2D).global_position = pos
-	
-	get_tree().current_scene.add_child(inst)
-	inst.add_to_group(group_tag)
-	inst.tree_exited.connect(_on_enemy_died.bind(inst))
-	_alive.append(inst)
-	emit_signal("spawned", inst)
-	GameBus.emit_signal("enemy_spawned", inst)
-	_update_count_ui()
+		
+		# Reset enemy state for reuse
+		inst.visible = true
+		inst.set_process(true)
+		
+		# Ensure enemy is not already in scene tree
+		if inst.get_parent():
+			inst.get_parent().remove_child(inst)
+		
+		# Add to scene and tracking
+		get_tree().current_scene.add_child(inst)
+		inst.add_to_group(group_tag)
+		
+		# Reconnect death signal (in case it was disconnected)
+		if not inst.tree_exited.is_connected(_on_enemy_died.bind(inst)):
+			inst.tree_exited.connect(_on_enemy_died.bind(inst))
+		
+		_alive.append(inst)
+		emit_signal("spawned", inst)
+		GameBus.emit_signal("enemy_spawned", inst)
+		_update_count_ui()
+		
+		# The enemy will automatically register with AgentSim in its _ready() function
+
+func _create_enemy_pool() -> void:
+	_enemy_pool = ObjectPool.new()
+	_enemy_pool.scene = spawn_scene
+	_enemy_pool.initial_size = 200  # Pre-allocate 200 enemies
+	add_child(_enemy_pool)
 
 func _create_count_ui() -> void:
 	_count_label = Label.new()
@@ -77,4 +103,12 @@ func _is_position_clear(pos: Vector2) -> bool:
 func _on_enemy_died(inst: Node) -> void:
 	_alive.erase(inst)
 	GameBus.emit_signal("enemy_despawned", inst)
+	
+	# Return enemy to pool for reuse
+	if _enemy_pool and is_instance_valid(inst):
+		# Remove from scene tree but don't free
+		if inst.get_parent():
+			inst.get_parent().remove_child(inst)
+		_enemy_pool.release(inst)
+	
 	_update_count_ui()
