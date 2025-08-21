@@ -44,6 +44,8 @@ script = ExtResource("1_6")
 
 [node name="PhysicsRunner" type="Node" parent="SystemsRunner"]
 script = ExtResource("1_7")
+batch_size = null
+max_agents_per_frame = null
 
 [node name="DungeonTileMap" type="TileMap" parent="."]
 format = 2
