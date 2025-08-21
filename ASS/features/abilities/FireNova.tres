@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="FireNova" load_steps=2]
+
+[ext_resource type="Script" path="res://features/abilities/FireNova.gd" id="1_1"]
+
+[resource]
+script = ExtResource("1_1")
+name = "FireNova"
+cooldown = 1.0
+base_power = 1.0
+scale_with_stat = "power"
+radius = 196.0
+damage = 25.0
+
+

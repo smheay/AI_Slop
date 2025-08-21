@@ -1,0 +1,13 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://ui/HUD.gd" id="1_1"]
+
+[node name="HUD" type="CanvasLayer"]
+script = ExtResource("1_1")
+
+[node name="HealthBar" type="ProgressBar" parent="."]
+
+[node name="FPS" type="Label" parent="."]
+text = "FPS: --"
+
+

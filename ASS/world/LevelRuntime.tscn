@@ -1,0 +1,71 @@
+[gd_scene load_steps=14 format=3 uid="uid://dpy8jf0j4d68a"]
+
+[ext_resource type="Script" uid="uid://d0v1pjumphh5f" path="res://world/LevelRuntime.gd" id="1_1"]
+[ext_resource type="Script" uid="uid://08wpv7d53mg6" path="res://world/SystemsRunner.gd" id="1_2"]
+[ext_resource type="Script" uid="uid://bhuyx8mbdua26" path="res://core/sim/AgentSim.gd" id="1_3"]
+[ext_resource type="Script" uid="uid://bp8y2gwa821kq" path="res://core/sim/SpatialHash2D.gd" id="1_4"]
+[ext_resource type="Script" uid="uid://e2xd72y1f8rd" path="res://core/sim/LODController.gd" id="1_5"]
+[ext_resource type="Script" uid="uid://bs1iissa4u7hs" path="res://core/jobs/AIRunner.gd" id="1_6"]
+[ext_resource type="Script" uid="uid://rhuwfvebwa7x" path="res://core/jobs/PhysicsRunner.gd" id="1_7"]
+[ext_resource type="Script" uid="uid://dyyi1xigayg4e" path="res://world/DungeonTileMap.gd" id="1_8"]
+[ext_resource type="Script" uid="uid://buba8cxpxoflq" path="res://integrations/twitch/CommandParser.gd" id="1_9"]
+[ext_resource type="Script" uid="uid://dv4ofum64as5g" path="res://integrations/twitch/CommandBindings.gd" id="1_10"]
+[ext_resource type="PackedScene" path="res://features/spawning/Spawner.tscn" id="1_11"]
+[ext_resource type="PackedScene" path="res://actors/player/Player.tscn" id="1_12"]
+[ext_resource type="PackedScene" path="res://ui/Hotbar.tscn" id="1_13"]
+
+[node name="LevelRuntime" type="Node"]
+script = ExtResource("1_1")
+systems_runner_path = NodePath("SystemsRunner")
+dungeon_tilemap_path = NodePath("DungeonTileMap")
+command_parser_path = NodePath("CommandParser")
+command_bindings_path = NodePath("CommandBindings")
+
+[node name="Background" type="Polygon2D" parent="."]
+polygon = PackedVector2Array(-10000, -10000, 10000, -10000, 10000, 10000, -10000, 10000)
+color = Color(0.3, 0.3, 0.3, 1)
+z_index = -100
+
+[node name="SystemsRunner" type="Node" parent="."]
+script = ExtResource("1_2")
+agent_sim_path = NodePath("AgentSim")
+ai_runner_path = NodePath("AIRunner")
+physics_runner_path = NodePath("PhysicsRunner")
+
+[node name="AgentSim" type="Node" parent="SystemsRunner"]
+script = ExtResource("1_3")
+spatial_hash = NodePath("SpatialHash2D")
+lod_controller = NodePath("LODController")
+
+[node name="SpatialHash2D" type="Node" parent="SystemsRunner/AgentSim"]
+script = ExtResource("1_4")
+
+[node name="LODController" type="Node" parent="SystemsRunner/AgentSim"]
+script = ExtResource("1_5")
+
+[node name="AIRunner" type="Node" parent="SystemsRunner"]
+script = ExtResource("1_6")
+
+[node name="PhysicsRunner" type="Node" parent="SystemsRunner"]
+script = ExtResource("1_7")
+
+[node name="DungeonTileMap" type="TileMap" parent="."]
+format = 2
+script = ExtResource("1_8")
+
+[node name="CommandParser" type="Node" parent="."]
+script = ExtResource("1_9")
+
+[node name="CommandBindings" type="Node" parent="."]
+script = ExtResource("1_10")
+
+[node name="Spawner" parent="." instance=ExtResource("1_11")]
+
+[node name="Player" parent="." instance=ExtResource("1_12")]
+position = Vector2(0, 0)
+
+[node name="HUD" type="CanvasLayer" parent="."]
+layer = 128
+
+[node name="Hotbar" parent="HUD" instance=ExtResource("1_13")]
+[node name="VFXLayer" type="Node2D" parent="."]

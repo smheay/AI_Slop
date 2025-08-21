@@ -1,0 +1,50 @@
+# Godot-specific ignores
+*.import
+.godot/
+.godotignore
+
+# Build outputs
+export/
+build/
+bin/
+obj/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs and temporary files
+*.log
+*.tmp
+*.temp
+
+# Backup files
+*.bak
+*.backup
+*.old
+
+# Compiled files
+*.o
+*.so
+*.dll
+*.dylib
+
+# Package files
+*.zip
+*.tar.gz
+*.rar
+
+# User-specific files
+user://

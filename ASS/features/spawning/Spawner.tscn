@@ -1,0 +1,18 @@
+
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://features/spawning/Spawner.gd" id="1_1"]
+[ext_resource type="PackedScene" path="res://actors/enemies/Slime.tscn" id="1_2"]
+
+[node name="Spawner" type="Node2D"]
+script = ExtResource("1_1")
+groups = ["spawners"]
+spawn_scene = ExtResource("1_2")
+spawn_rate = 1.0
+max_alive = 1000
+auto_spawn = true
+burst_size = 100
+
+[node name="SpawnTimer" type="Timer" parent="."]
+
+

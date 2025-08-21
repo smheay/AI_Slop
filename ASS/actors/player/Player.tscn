@@ -1,0 +1,51 @@
+[gd_scene load_steps=9 format=3]
+
+[ext_resource type="Script" path="res://actors/player/Player.gd" id="1_1"]
+[ext_resource type="Script" path="res://actors/components/Stats.gd" id="1_2"]
+[ext_resource type="Script" path="res://actors/components/Health.gd" id="1_3"]
+[ext_resource type="Script" path="res://actors/components/Mover.gd" id="1_4"]
+[ext_resource type="Resource" path="res://resources/FireNova.tres" id="1_5"]
+[ext_resource type="Script" path="res://features/abilities/AbilityBar.gd" id="1_6"]
+[ext_resource type="Script" path="res://actors/player/PlayerVisual.gd" id="1_7"]
+
+[sub_resource type="CircleShape2D" id="1_8"]
+radius = 14.0
+
+[node name="Player" type="CharacterBody2D"]
+script = ExtResource("1_1")
+collision_layer = 1
+collision_mask = 3
+stats_path = NodePath("Stats")
+auto_attack = ExtResource("1_5")
+
+[node name="Camera2D" type="Camera2D" parent="."]
+enabled = true
+current = true
+drag_horizontal_enabled = true
+drag_vertical_enabled = true
+drag_left_margin = 0.1
+drag_top_margin = 0.1
+drag_right_margin = 0.1
+drag_bottom_margin = 0.1
+
+[node name="Stats" type="Node" parent="."]
+script = ExtResource("1_2")
+
+[node name="Health" type="Node" parent="."]
+script = ExtResource("1_3")
+
+[node name="Mover" type="Node" parent="."]
+script = ExtResource("1_4")
+[node name="AbilityBar" type="Node" parent="."]
+script = ExtResource("1_6")
+caster_path = NodePath("..");
+slots = [ExtResource("1_5")]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("1_8")
+
+[node name="Visual" type="Polygon2D" parent="."]
+polygon = PackedVector2Array(-16, -16, 16, -16, 16, 16, -16, 16)
+color = Color(0.2, 0.6, 1, 1)
+
+

@@ -1,0 +1,12 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://actors/npcs/BaseNPC.gd" id="1_1"]
+[ext_resource type="Script" path="res://actors/npcs/Shopkeeper.gd" id="1_2"]
+
+[node name="Shopkeeper" type="Node2D"]
+script = ExtResource("1_1")
+
+[node name="ShopkeeperLogic" type="Node" parent="."]
+script = ExtResource("1_2")
+
+

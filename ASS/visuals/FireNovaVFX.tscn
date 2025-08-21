@@ -1,0 +1,17 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://visuals/FireNovaVFX.gd" id="1_1"]
+
+[node name="FireNovaVFX" type="Node2D"]
+script = ExtResource("1_1")
+debug_draw = true
+glow_margin_px = 0.0
+ring_width = 18.0
+
+[node name="Ring" type="Node2D" parent="."]
+
+[node name="Lifetime" type="Timer" parent="."]
+one_shot = true
+autostart = false
+
+

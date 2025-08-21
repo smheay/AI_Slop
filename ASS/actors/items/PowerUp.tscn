@@ -1,0 +1,9 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="PackedScene" path="res://actors/items/BaseItem.tscn" id="1_1"]
+[ext_resource type="Script" path="res://actors/items/PowerUp.gd" id="1_2"]
+
+[node name="PowerUp" instance=ExtResource("1_1")]
+script = ExtResource("1_2")
+
+

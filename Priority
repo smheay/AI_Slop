@@ -1,0 +1,27 @@
+1. Complete Basic Gameplay Loop (Priority 1)
+Player auto-attack system - Connect the FireNova.tres ability to actually spawn projectiles
+Enemy AI movement - Make enemies move toward player (basic steering)
+Collision detection - Player attacks hit enemies, enemies can damage player
+Health system - Enemies die when hit, player takes damage
+Why this first? You need a playable core loop before adding complexity.
+2. Map Generation (Priority 2)
+Simple arena - Start with a basic circular/rectangular boundary
+Tile-based floor - Basic tileset for visual appeal
+Spawn boundaries - Keep enemies within playable area
+3. UI & Feedback (Priority 3)
+Health bar - Player can see their status
+Enemy counter - See how many enemies are alive
+Score/time - Basic progression metrics
+4. Enemy Variety & AI (Priority 4)
+Different enemy types - Slimes, bats, etc.
+Behavior patterns - Some chase, some shoot, some swarm
+Boss mechanics - Special abilities, phases
+5. Twitch Integration (Priority 5)
+Chat commands - Spawn enemies, buff/debuff player
+Interactive elements - Let viewers control spawns
+My Recommendation: Start with #1 (Complete Basic Gameplay Loop)
+This gives you:
+A playable game immediately
+Foundation for everything else
+Clear next steps
+Ability to test and iterate

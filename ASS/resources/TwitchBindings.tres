@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="DataTable" load_steps=2]
+
+[ext_resource type="Script" path="res://resources/DataTable.gd" id="1_1"]
+
+[resource]
+script = ExtResource("1_1")
+data = {
+	"spawn": {"target_group": "spawners"},
+	"buff": {"target_group": "enemies"},
+	"debuff": {"target_group": "enemies"}
+}
+
+

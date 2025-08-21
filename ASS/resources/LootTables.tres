@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="DataTable" load_steps=2]
+
+[ext_resource type="Script" path="res://resources/DataTable.gd" id="1_1"]
+
+[resource]
+script = ExtResource("1_1")
+data = {
+	"slime": [["potion_small", 0.25]],
+	"bat": [["powerup_speed", 0.1]],
+	"boss_golem": [["armor_leather", 1.0], ["sword_rusty", 1.0]]
+}
+
+

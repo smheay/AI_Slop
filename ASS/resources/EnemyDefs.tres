@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="DataTable" load_steps=2]
+
+[ext_resource type="Script" path="res://resources/DataTable.gd" id="1_1"]
+
+[resource]
+script = ExtResource("1_1")
+data = {
+	"slime": {"hp": 20.0, "speed": 90.0, "power": 1.0},
+	"bat": {"hp": 12.0, "speed": 140.0, "power": 0.8},
+	"boss_golem": {"hp": 1500.0, "speed": 60.0, "power": 6.0}
+}
+
+
