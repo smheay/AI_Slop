@@ -7,13 +7,13 @@ class_name OptimizedSpawner
 signal spawned(entity_id: int)
 signal despawned(entity_id: int)
 
-@export var entity_manager: OptimizedEntityManager
-@export var spawn_radius: float = 1024.0
+var entity_manager: OptimizedEntityManager
+@export var spawn_radius: float = 300.0        # Reduced spawn radius for closer spawning
 @export var spawn_rate: float = 100.0        # entities per second
 @export var max_alive: int = 5000
-@export var spawn_burst: int = 100           # entities per spawn tick
+@export var spawn_burst: int = 20            # entities per spawn tick (reduced to prevent lag)
 @export var min_spawn_gap: float = 32.0     # clearance radius between spawns
-@export var max_per_tick: int = 50          # cap spawns per physics frame
+@export var max_per_tick: int = 5           # cap spawns per physics frame to prevent lag
 
 var _spawn_accum: float = 0.0
 var _rng := RandomNumberGenerator.new()
@@ -135,18 +135,20 @@ func _pick_clear_spawn_position() -> Variant:
 	return null
 
 func _get_position_from_pattern(pattern: Dictionary) -> Vector2:
+	var spawn_center = _get_spawn_center()
+	
 	match pattern.type:
 		"circle":
 			var angle = _rng.randf_range(0.0, TAU)
 			var radius = _rng.randf_range(pattern.radius * 0.3, pattern.radius)
-			return global_position + Vector2(cos(angle), sin(angle)) * radius
+			return spawn_center + Vector2(cos(angle), sin(angle)) * radius
 		
 		"grid":
 			var spacing = pattern.spacing
 			var grid_radius = int(spawn_radius / spacing)
 			var x = _rng.randi_range(-grid_radius, grid_radius)
 			var y = _rng.randi_range(-grid_radius, grid_radius)
-			return global_position + Vector2(x * spacing, y * spacing)
+			return spawn_center + Vector2(x * spacing, y * spacing)
 		
 		"random":
 			return _get_random_position()
@@ -154,16 +156,25 @@ func _get_position_from_pattern(pattern: Dictionary) -> Vector2:
 	return _get_random_position()
 
 func _get_random_position() -> Vector2:
+	var spawn_center = _get_spawn_center()
 	var angle = _rng.randf_range(0.0, TAU)
 	var radius = _rng.randf_range(spawn_radius * 0.3, spawn_radius)
-	return global_position + Vector2(cos(angle), sin(angle)) * radius
+	return spawn_center + Vector2(cos(angle), sin(angle)) * radius
+
+func _get_spawn_center() -> Vector2:
+	# Get player position as spawn center
+	var player = get_tree().get_first_node_in_group("player")
+	if player and player is Node2D:
+		return player.global_position
+	# Fallback to spawner position
+	return global_position
 
 func _is_position_clear(pos: Vector2, gap2: float) -> bool:
 	if not entity_manager:
 		return true
 	
 	# Use spatial hash to check for nearby entities
-	var nearby = entity_manager.get_neighbors(-1, min_spawn_gap)  # -1 means use position directly
+	var nearby = entity_manager.get_entities_near_position(pos, min_spawn_gap)
 	for entity_id in nearby:
 		var entity_pos = entity_manager.get_entity_position(entity_id)
 		if (entity_pos - pos).length_squared() < gap2:

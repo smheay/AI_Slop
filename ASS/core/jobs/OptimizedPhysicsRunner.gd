@@ -59,6 +59,9 @@ func _process_physics_batch(entities: Array[int], start_idx: int, end_idx: int, 
 		
 		# Check if entity should be processed this frame
 		if not lod_system.should_update_physics(entity_id):
+			# Debug: Log why entities are being skipped
+			if entity_id < 5:
+				Log.info("Entity %d PHYSICS SKIPPED: LOD says no update" % entity_id)
 			continue
 		
 		# Get entity data
@@ -81,6 +84,12 @@ func _process_physics_batch(entities: Array[int], start_idx: int, end_idx: int, 
 		# Update entity data
 		entity_data.set_entity_position(entity_id, new_position)
 		entity_data.set_entity_velocity(entity_id, final_velocity)
+		
+		# Debug: Log position updates for first few entities
+		if entity_id < 5:
+			Log.info("Entity %d PHYSICS: pos=%s, vel=%s, desired=%s" % [
+				entity_id, str(new_position), str(final_velocity), str(desired_velocity)
+			])
 		
 		# Update spatial hash
 		spatial_hash.move_entity(entity_id, new_position)

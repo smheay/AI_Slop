@@ -56,6 +56,9 @@ func _process_ai_batch(entities: Array[int], start_idx: int, end_idx: int, delta
 		
 		# Check if entity should update AI this frame
 		if not lod_system.should_update_ai(entity_id):
+			# Debug: Log why entities are being skipped
+			if entity_id < 5:
+				Log.info("Entity %d AI SKIPPED: LOD says no update" % entity_id)
 			continue
 		
 		# Get entity data
@@ -65,6 +68,16 @@ func _process_ai_batch(entities: Array[int], start_idx: int, end_idx: int, delta
 		
 		# Update AI based on LOD level
 		var lod_level = lod_system.entity_lod_levels[entity_id]
+		
+		# Debug: Log LOD levels for first few entities
+		if entity_id < 5:
+			Log.info("Entity %d: pos=%s, LOD=%d, should_update=%s" % [
+				entity_id, 
+				str(position), 
+				lod_level, 
+				str(lod_system.should_update_ai(entity_id))
+			])
+		
 		_update_entity_ai(entity_id, position, ai_state, move_speed, lod_level, delta)
 
 func _update_entity_ai(entity_id: int, position: Vector2, ai_state: int, move_speed: float, lod_level: int, delta: float) -> void:
@@ -84,6 +97,10 @@ func _update_entity_ai(entity_id: int, position: Vector2, ai_state: int, move_sp
 	
 	# Update entity data
 	entity_data.set_entity_desired_velocity(entity_id, desired_velocity)
+	
+	# Debug log first entity occasionally
+	if entity_id == 0 and randf() < 0.01:  # 1% chance for entity 0
+		Log.info("Entity 0 AI: pos=%s, player=%s, desired_vel=%s" % [str(position), str(player_position), str(desired_velocity)])
 
 func _compute_ai_velocity(position: Vector2, ai_state: int, move_speed: float) -> Vector2:
 	# Basic AI: move towards player

@@ -9,6 +9,7 @@ signal performance_updated(stats: Dictionary)
 
 var entity_manager: OptimizedEntityManager
 var spawner: OptimizedSpawner
+var entity_renderer: EntityRenderer
 var world_bounds: Rect2
 
 # Performance monitoring
@@ -31,6 +32,9 @@ func _ready() -> void:
 	# Create spawner
 	_create_spawner()
 	
+	# Create entity renderer
+	_create_entity_renderer()
+	
 	# Connect signals
 	entity_manager.performance_stats_updated.connect(_on_performance_updated)
 	
@@ -46,22 +50,46 @@ func _create_spawner() -> void:
 	spawner.name = "OptimizedSpawner"
 	spawner.entity_manager = entity_manager
 	spawner.max_alive = max_entities
-	spawner.spawn_rate = 200.0  # Higher spawn rate for testing
+	spawner.spawn_rate = 10.0   # Reasonable spawn rate for testing
 	add_child(spawner)
+
+func _create_entity_renderer() -> void:
+	# Create entity renderer as child node
+	entity_renderer = EntityRenderer.new()
+	entity_renderer.name = "EntityRenderer"
+	entity_renderer.set_entity_manager(entity_manager)
+	add_child(entity_renderer)
 
 func _physics_process(delta: float) -> void:
 	frame_count += 1
 	
 	# Update entity simulation
 	if entity_manager:
+		# Update player position
+		var player_pos = _get_player_position()
+		entity_manager.set_player_position(player_pos)
+		
+		# Debug log player position occasionally
+		if frame_count % 300 == 0:
+			Log.info("Player position: %s, Entities: %d" % [str(player_pos), entity_manager.get_entity_count()])
+		
+		# Update simulation
 		entity_manager.update_simulation(delta)
 	
 	# Update performance monitoring
 	if frame_count % 60 == 0:  # Every 60 frames
 		_update_performance_monitoring()
 
+func _get_player_position() -> Vector2:
+	# Get the actual player position from the scene tree
+	var player = get_tree().get_first_node_in_group("player")
+	if player and player is Node2D:
+		return player.global_position
+	# Fallback to default position if no player found
+	return Vector2(512, 512)
+
 func _update_performance_monitoring() -> void:
-	var current_time = Time.get_time_dict_from_system()["unix"]
+	var current_time = Time.get_unix_time_from_system()
 	
 	# Get current performance stats
 	var stats = entity_manager.get_performance_stats()
@@ -84,6 +112,24 @@ func _update_performance_monitoring() -> void:
 			stats.fps,
 			stats.memory_usage / 1024 / 1024
 		])
+		
+		# Also log spawner info
+		if spawner:
+			Log.info("Spawner: Rate %.1f, Max Alive %d, Current %d" % [
+				spawner.spawn_rate,
+				spawner.max_alive,
+				entity_manager.get_entity_count() if entity_manager else 0
+			])
+		
+		# Log LOD stats
+		if entity_manager and stats.has("lod_stats"):
+			var lod_stats = stats.lod_stats
+			Log.info("LOD: High=%d, Med=%d, Low=%d, Min=%d" % [
+				lod_stats.get("high_detail", 0),
+				lod_stats.get("medium_detail", 0),
+				lod_stats.get("low_detail", 0),
+				lod_stats.get("minimal_detail", 0)
+			])
 
 func _on_performance_updated(stats: Dictionary) -> void:
 	# Handle performance updates
@@ -116,16 +162,20 @@ func spawn_entities(count: int) -> void:
 	if not spawner:
 		return
 	
-	# Temporarily increase spawn rate
+	# Temporarily increase spawn rate for burst spawning
 	var original_rate = spawner.spawn_rate
-	spawner.spawn_rate = count * 2.0  # Spawn quickly
+	spawner.spawn_rate = count * 5.0  # Spawn quickly but not too fast
 	
 	# Let the spawner handle it naturally
 	# The spawner will respect max_alive limit
+	
+	Log.info("OptimizedSystemsRunner: Requested spawn of %d entities" % count)
 
 func clear_all_entities() -> void:
 	if entity_manager:
 		entity_manager.clear_all_entities()
+	if entity_renderer:
+		entity_renderer.clear_all_sprites()
 
 func set_spawn_rate(rate: float) -> void:
 	if spawner:
@@ -143,7 +193,10 @@ func get_system_status() -> Dictionary:
 	return {
 		"entity_manager_ready": entity_manager != null,
 		"spawner_ready": spawner != null,
+		"entity_renderer_ready": entity_renderer != null,
 		"max_entities": max_entities,
+		"current_entities": entity_manager.get_entity_count() if entity_manager else 0,
+		"spawn_rate": spawner.spawn_rate if spawner else 0.0,
 		"world_bounds": world_bounds,
 		"frame_count": frame_count
 	}

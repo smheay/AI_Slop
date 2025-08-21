@@ -62,6 +62,10 @@ func create_entity(position: Vector2, properties: Dictionary = {}) -> int:
 	if properties.has("hit_radius"):
 		entity_data.hit_radii[entity_id] = properties.hit_radius
 	
+	# Debug: Log entity creation for first few entities
+	if entity_id < 5:
+		Log.info("Entity %d CREATED: pos=%s, props=%s" % [entity_id, str(position), str(properties)])
+	
 	# Add to spatial hash
 	spatial_hash.insert_entity(entity_id, position)
 	
@@ -69,7 +73,7 @@ func create_entity(position: Vector2, properties: Dictionary = {}) -> int:
 	active_entities.append(entity_id)
 	
 	# Update LOD
-	lod_system.update_entity_lod(entity_id, position, Time.get_time_dict_from_system()["unix"])
+	lod_system.update_entity_lod(entity_id, position, Time.get_unix_time_from_system())
 	
 	emit_signal("entity_count_changed", active_entities.size())
 	return entity_id
@@ -95,10 +99,6 @@ func is_valid_entity(entity_id: int) -> bool:
 func update_simulation(delta: float) -> void:
 	frame_count += 1
 	
-	# Update player position for AI and LOD
-	var player_pos = _get_player_position()
-	ai_runner.set_player_position(player_pos)
-	
 	# Update LOD for all entities
 	_update_entity_lods()
 	
@@ -113,16 +113,21 @@ func update_simulation(delta: float) -> void:
 		_update_performance_stats()
 
 func _update_entity_lods() -> void:
-	var current_time = Time.get_time_dict_from_system()["unix"]
+	var current_time = Time.get_unix_time_from_system()
 	
 	for entity_id in active_entities:
 		var position = entity_data.get_entity_position(entity_id)
 		lod_system.update_entity_lod(entity_id, position, current_time)
 
+func set_player_position(position: Vector2) -> void:
+	# Update player position for AI and LOD systems
+	lod_system.set_player_position(position)
+	ai_runner.set_player_position(position)
+
 func _get_player_position() -> Vector2:
-	# This should be implemented to get the actual player position
-	# For now, return a default position
-	return Vector2(512, 512)
+	# Player position is set by the OptimizedSystemsRunner
+	# This is a fallback that should be updated by set_player_position()
+	return lod_system.player_position
 
 func _expand_capacity() -> void:
 	# Expand entity data arrays
@@ -161,6 +166,10 @@ func get_neighbors(entity_id: int, radius: float) -> Array[int]:
 		return []
 	
 	var position = entity_data.get_entity_position(entity_id)
+	return spatial_hash.query_radius(position, radius)
+
+func get_entities_near_position(position: Vector2, radius: float) -> Array[int]:
+	# Query spatial hash directly by position (useful for spawn position checking)
 	return spatial_hash.query_radius(position, radius)
 
 func _update_performance_stats() -> void:

@@ -6,7 +6,7 @@ class_name LevelRuntime
 @export var command_parser_path: NodePath
 @export var command_bindings_path: NodePath
 
-var systems_runner: SystemsRunner
+var systems_runner: OptimizedSystemsRunner
 var dungeon_tilemap: DungeonTileMap
 var command_parser: CommandParser
 var command_bindings: CommandBindings
@@ -20,6 +20,13 @@ func _ready() -> void:
 		Twitch.message_received.connect(_on_twitch_message_received)
 	if command_parser and command_bindings:
 		command_parser.command_parsed.connect(_on_command_parsed)
+	
+	# Wait for optimized systems to be ready
+	if systems_runner:
+		systems_runner.systems_ready.connect(_on_systems_ready)
+
+func _on_systems_ready() -> void:
+	Log.info("LevelRuntime: Optimized systems are ready")
 
 func _on_twitch_message_received(user: String, message: String) -> void:
 	if command_parser:

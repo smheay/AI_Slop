@@ -12,7 +12,7 @@ enum LODLevel {
 }
 
 # LOD configuration
-var lod_distances: Array[float] = [200.0, 400.0, 800.0, 1600.0]
+var lod_distances: Array[float] = [500.0, 1000.0, 2000.0, 4000.0]  # Increased distances for better visibility
 var lod_update_intervals: Array[float] = [0.016, 0.032, 0.064, 0.128]  # seconds
 var player_position: Vector2 = Vector2.ZERO
 
@@ -58,6 +58,12 @@ func update_entity_lod(entity_id: int, position: Vector2, current_time: float) -
 		entity_lod_levels[entity_id] = new_lod
 		entities_per_lod[new_lod] += 1
 	
+	# Debug: Log LOD updates for first few entities
+	if entity_id < 5:
+		Log.info("Entity %d LOD: pos=%s, dist=%.1f, LOD=%d, player=%s" % [
+			entity_id, str(position), distance, new_lod, str(player_position)
+		])
+	
 	# Check if entity should be updated this frame
 	var update_interval = lod_update_intervals[new_lod]
 	if current_time - entity_last_updates[entity_id] >= update_interval:
@@ -69,12 +75,30 @@ func update_entity_lod(entity_id: int, position: Vector2, current_time: float) -
 func should_update_ai(entity_id: int) -> bool:
 	if entity_id >= entity_lod_levels.size():
 		return false
-	return entity_lod_levels[entity_id] <= LODLevel.MEDIUM
+	
+	var should_update = entity_lod_levels[entity_id] <= LODLevel.MEDIUM
+	
+	# Debug: Log LOD checks for first few entities
+	if entity_id < 5:
+		Log.info("Entity %d LOD check: level=%d, should_update_ai=%s" % [
+			entity_id, entity_lod_levels[entity_id], str(should_update)
+		])
+	
+	return should_update
 
 func should_update_physics(entity_id: int) -> bool:
 	if entity_id >= entity_lod_levels.size():
 		return false
-	return entity_lod_levels[entity_id] <= LODLevel.LOW
+	
+	var should_update = entity_lod_levels[entity_id] <= LODLevel.LOW
+	
+	# Debug: Log LOD checks for first few entities
+	if entity_id < 5:
+		Log.info("Entity %d LOD check: level=%d, should_update_physics=%s" % [
+			entity_id, entity_lod_levels[entity_id], str(should_update)
+		])
+	
+	return should_update
 
 func should_update_rendering(entity_id: int) -> bool:
 	if entity_id >= entity_lod_levels.size():

@@ -37,7 +37,7 @@ func _start_performance_test() -> void:
 		return
 	
 	test_started = true
-	test_start_time = Time.get_time_dict_from_system()["unix"]
+	test_start_time = Time.get_unix_time_from_system()
 	
 	Log.info("PerformanceTest: Starting performance test with target of %d entities" % target_entity_count)
 	
@@ -63,7 +63,7 @@ var _has_reached_target: bool = false
 
 func _on_target_reached() -> void:
 	_has_reached_target = true
-	var elapsed = Time.get_time_dict_from_system()["unix"] - test_start_time
+	var elapsed = Time.get_unix_time_from_system() - test_start_time
 	
 	Log.info("PerformanceTest: Target of %d entities reached in %.2f seconds!" % [target_entity_count, elapsed])
 	
@@ -136,7 +136,7 @@ func get_performance_summary() -> Dictionary:
 		"max_fps": max_fps,
 		"average_memory_mb": avg_memory / 1024 / 1024,
 		"peak_entities": entity_history.max() if entity_history.size() > 0 else 0,
-		"test_duration_seconds": Time.get_time_dict_from_system()["unix"] - test_start_time
+		"test_duration_seconds": Time.get_unix_time_from_system() - test_start_time
 	}
 
 func _input(event: InputEvent) -> void:
