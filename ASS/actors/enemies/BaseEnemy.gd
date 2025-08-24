@@ -13,6 +13,9 @@ var _damageable: Node
 var _target: Node2D
 var _self_hit_radius: float = 12.0
 var _agent_sim: AgentSim
+var _current_lod: int = 0
+var _last_ai_update: int = 0
+var _last_physics_update: int = 0
 
 func _ready() -> void:
 	_damageable = get_node_or_null(damageable_path)
@@ -37,7 +40,14 @@ func _ready() -> void:
 	call_deferred("_force_initial_separation")
 
 func _on_died(source: Node) -> void:
-	# Delegate despawn lifecycle to spawner/pool
+	# Return to pool instead of emitting despawn
+	if has_meta("is_pooled"):
+		var pool_owner = get_meta("pool_owner")
+		if pool_owner and pool_owner.has_method("return_instance"):
+			pool_owner.return_instance(self)
+			return
+	
+	# Fallback to despawn if not pooled
 	emit_signal("despawn_requested", self)
 
 # Called by the batch system (PhysicsRunner owns movement)
@@ -102,5 +112,44 @@ func _compute_desired_velocity(delta: float) -> Vector2:
 	return Vector2.ZERO
 
 func apply_movement(proposed_velocity: Vector2, delta: float) -> void:
+	# Ensure physics body is properly initialized
+	if not is_inside_tree() or not get_viewport():
+		return
+	
 	velocity = proposed_velocity.limit_length(move_speed)
-	move_and_slide()
+	
+	# Check if physics body is valid before calling move_and_slide
+	if get_world_2d() and get_world_2d().direct_space_state:
+		move_and_slide()
+	else:
+		# Fallback: just update position directly
+		global_position += velocity * delta
+
+# Object pooling support
+func reset_for_pool() -> void:
+	# Reset enemy state when pulled from pool
+	_target = null
+	velocity = Vector2.ZERO
+	_last_ai_update = 0
+	_last_physics_update = 0
+	_current_lod = 0
+	
+	# Ensure physics body is properly initialized
+	if is_inside_tree():
+		# Reset physics state
+		force_update_transform()
+		# Ensure collision detection is enabled
+		if has_method("set_collision_layer_value"):
+			set_collision_layer_value(1, true)
+			set_collision_mask_value(1, true)
+	
+	# Reset damageable if it exists
+	if _damageable and _damageable is Damageable:
+		(_damageable as Damageable).reset_for_pool()
+
+# LOD-aware separation calculation
+func should_calculate_separation() -> bool:
+	return _current_lod <= 1  # Only calculate separation for near and medium LOD
+
+func set_lod_level(lod: int) -> void:
+	_current_lod = lod

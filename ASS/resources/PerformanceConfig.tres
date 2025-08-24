@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="PerformanceConfig" load_steps=2 format=3 uid="uid://bqx8yqxqxqxqx"]
+
+[ext_resource type="Script" path="res://resources/PerformanceConfig.gd" id="1_0"]
+
+[sub_resource type="Resource" id="Resource_1"]
+script = ExtResource("1_0")
+
+# Performance configuration for 5000+ enemies
+max_agents = 10000
+spatial_hash_cell_size = 128.0
+spatial_hash_update_threshold = 200
+batch_size = 128
+max_agents_per_frame = 2000
+
+# LOD distances
+near_distance = 512.0
+far_distance = 2048.0
+
+# Separation optimization
+max_separation_neighbors = 8
+separation_skip_far_agents = true
+
+# Object pooling
+preload_enemy_count = 1000
+max_pool_size = 2000

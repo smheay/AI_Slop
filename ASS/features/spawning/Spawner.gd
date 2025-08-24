@@ -72,7 +72,7 @@ func _spawn_enemy() -> bool:
 	if not _enemy_pool:
 		return false
 	
-	var inst := _enemy_pool.acquire()
+	var inst = _enemy_pool.get_instance(spawn_scene)
 	if inst == null:
 		return false
 	
@@ -144,11 +144,18 @@ func _is_position_clear(pos: Vector2, gap2: float) -> bool:
 	
 	# Fallback: scan current alive list (O(n)), squared distance to avoid sqrt
 	for enemy in _alive:
-		if (enemy.global_position - pos).length_squared() < gap2:
+		if is_instance_valid(enemy) and (enemy.global_position - pos).length_squared() < gap2:
 			return false
 	return true
 
 func _on_enemy_despawn(enemy: Node2D) -> void:
+	# Safety check: ensure enemy is still valid
+	if not is_instance_valid(enemy):
+		# If enemy is already freed, just clean up our tracking
+		_alive.erase(enemy)
+		_maybe_update_count_ui()
+		return
+	
 	# Disconnect so pooled nodes don't stack multiple connections
 	if enemy is BaseEnemy:
 		var be := enemy as BaseEnemy
@@ -165,18 +172,16 @@ func _on_enemy_despawn(enemy: Node2D) -> void:
 	GameBus.emit_signal("enemy_despawned", enemy)
 	
 	# Detach from scene tree and return to pool
-	if is_instance_valid(enemy):
-		if enemy.get_parent():
-			enemy.get_parent().remove_child(enemy)
-		if _enemy_pool:
-			_enemy_pool.release(enemy)
+	if enemy.get_parent():
+		enemy.get_parent().remove_child(enemy)
+	if _enemy_pool:
+		_enemy_pool.release(enemy)
 	
 	_maybe_update_count_ui()
 
 func _create_enemy_pool() -> void:
 	_enemy_pool = ObjectPool.new()
-	_enemy_pool.scene = spawn_scene
-	_enemy_pool.initial_size = 200
+	# ObjectPool will create instances on-demand when get_instance is called
 	add_child(_enemy_pool)
 
 func _create_count_ui() -> void:
@@ -189,9 +194,21 @@ func _create_count_ui() -> void:
 	_last_ui_count = 0
 
 func _maybe_update_count_ui() -> void:
+	# Clean up invalid enemies first
+	_cleanup_invalid_enemies()
+	
 	if not _count_label:
 		return
 	var n := _alive.size()
 	if n != _last_ui_count:
 		_last_ui_count = n
 		_count_label.text = "Enemies: %d / %d" % [n, max_alive]
+
+func _cleanup_invalid_enemies() -> void:
+	# Remove any invalid enemies from the alive list
+	var i := 0
+	while i < _alive.size():
+		if not is_instance_valid(_alive[i]):
+			_alive.remove_at(i)
+		else:
+			i += 1

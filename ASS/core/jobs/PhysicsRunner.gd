@@ -28,12 +28,12 @@ func integrate(agents: Array, delta: float) -> void:
 		
 		for i in range(processed, batch_end):
 			var enemy := agents[i] as BaseEnemy
-			if enemy == null:
+			if enemy == null or not is_instance_valid(enemy):
 				continue
 			# Desired
 			var desired := enemy._compute_desired_velocity(delta)
-			# Separation via AgentSim neighbors
-			if _agent_sim and enemy.separation_radius > 0.0:
+			# Separation via AgentSim neighbors (LOD-aware)
+			if _agent_sim and enemy.separation_radius > 0.0 and enemy.should_calculate_separation():
 				var query_radius: float = enemy.separation_radius + (enemy._self_hit_radius * 2.0)
 				var neighbors := _agent_sim.get_neighbors(enemy, query_radius)
 				var push := Vector2.ZERO

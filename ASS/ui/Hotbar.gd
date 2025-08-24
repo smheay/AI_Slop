@@ -21,7 +21,12 @@ func _input(event: InputEvent) -> void:
 	
 	# Handle hotbar key presses for slots 1-10 (keys 1-0)
 	for i in range(10):
-		var action_name = "hotbar_" + str(i + 1)
+		var action_name: String
+		if i == 9:  # Slot 10 uses the 0 key
+			action_name = "hotbar_0"
+		else:
+			action_name = "hotbar_" + str(i + 1)
+		
 		if event.is_action_pressed(action_name):
 			_selected_slot = i
 			_update_hotbar_display()

@@ -17,4 +17,8 @@ func take_damage(amount: float, source: Node) -> void:
 	if current_health <= 0.0:
 		emit_signal("died", source)
 
+func reset_for_pool() -> void:
+	# Reset health when pulled from pool
+	current_health = max_health
+
 

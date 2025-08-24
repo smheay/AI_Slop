@@ -23,7 +23,7 @@ func run_batch(agents: Array, delta: float) -> void:
 		
 		for i in range(processed, batch_end):
 			var agent := agents[i] as Node2D
-			if agent and agent.has_method("_ai_step"):
+			if agent and is_instance_valid(agent) and agent.has_method("_ai_step"):
 				agent.call("_ai_step", delta)
 		
 		processed = batch_end

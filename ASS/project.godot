@@ -31,6 +31,10 @@ window/size/borderless=true
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
 
+[dotnet]
+
+project/assembly_name="ASS"
+
 [input]
 
 ui_left={
